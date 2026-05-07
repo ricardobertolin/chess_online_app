@@ -1,5 +1,18 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
-  <rect width="192" height="192" rx="32" fill="#6c5ce7"/>
-  <text x="96" y="150" text-anchor="middle" font-size="150" fill="#ffffff"
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3d2a18"/>
+      <stop offset="1" stop-color="#1c130b"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e9c66b"/>
+      <stop offset="0.5" stop-color="#d4af37"/>
+      <stop offset="1" stop-color="#a8862a"/>
+    </linearGradient>
+  </defs>
+  <rect width="192" height="192" rx="32" fill="url(#bg)"/>
+  <rect x="6" y="6" width="180" height="180" rx="28" fill="none"
+        stroke="#d4af37" stroke-opacity="0.35" stroke-width="1.5"/>
+  <text x="96" y="150" text-anchor="middle" font-size="150" fill="url(#gold)"
         font-family="'Segoe UI Symbol', 'Apple Symbols', 'Noto Sans Symbols', sans-serif">&#9818;</text>
 </svg>

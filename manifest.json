@@ -4,8 +4,8 @@
   "description": "A pass-and-play chess PWA prototype.",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#1a1a2e",
-  "theme_color": "#6c5ce7",
+  "background_color": "#1c130b",
+  "theme_color": "#d4af37",
   "orientation": "portrait-primary",
   "lang": "en",
   "icons": [
