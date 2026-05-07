@@ -220,10 +220,11 @@ body {
 
 .title-actions {
   display: flex;
+  flex-direction: column;
   gap: 12px;
   margin-top: 20px;
   width: 100%;
-  max-width: 240px;
+  max-width: 280px;
 }
 
 .btn--big {
@@ -803,6 +804,53 @@ body[data-screen="title"] .footer { display: none; }
 @keyframes clock-pulse {
   0%, 100% { opacity: 1; }
   50%      { opacity: 0.55; }
+}
+
+/* ── Online lobby ────────────────────────────────────────────── */
+.btn-row--stack {
+  flex-direction: column;
+}
+.btn-row--stack .btn { width: 100%; }
+
+.card__lead {
+  color: var(--color-text-muted);
+  margin-bottom: 4px;
+  font-style: italic;
+}
+
+.lobby-code {
+  font-family: var(--font-mono);
+  font-size: 2.4rem;
+  font-weight: 700;
+  letter-spacing: 0.32em;
+  color: var(--color-accent);
+  text-align: center;
+  padding: 14px 12px;
+  background: var(--color-bg);
+  border: 1.5px dashed var(--color-accent-dark);
+  border-radius: var(--radius-input);
+  user-select: all;
+  cursor: pointer;
+  text-shadow: 0 0 12px rgba(212, 175, 55, 0.35);
+  margin-top: 4px;
+}
+
+.input--code {
+  font-family: var(--font-mono);
+  font-size: 1.5rem;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  text-align: center;
+  color: var(--color-accent);
+  padding: 14px;
+}
+
+.field-hint {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  margin-top: 8px;
+  text-align: center;
+  font-style: italic;
 }
 
 /* ── Customize pieces page ───────────────────────────────────── */

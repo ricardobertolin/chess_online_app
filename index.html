@@ -15,6 +15,11 @@
   <link rel="stylesheet" href="style.css">
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon.svg">
+
+  <!-- PeerJS: WebRTC wrapper that uses a free public broker for signaling.
+       Once peers are connected, all game traffic is peer-to-peer. -->
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"
+          crossorigin="anonymous" defer></script>
 </head>
 <body data-screen="title">
 
@@ -27,10 +32,68 @@
         <div class="title-card">
           <div class="title-mark" aria-hidden="true">♚</div>
           <h1 class="title-name">Chess</h1>
-          <p class="title-tag">Pass-and-Play</p>
+          <p class="title-tag">Pass-and-Play &amp; Online</p>
           <div class="title-actions">
-            <button class="btn btn--primary btn--big" id="btnPlay">Play</button>
+            <button class="btn btn--primary  btn--big" id="btnSinglePlayer">Single Player</button>
+            <button class="btn btn--secondary btn--big" id="btnOnline">Play Online</button>
           </div>
+        </div>
+      </section>
+
+      <!-- ── Online lobby ───────────────────────────────────── -->
+      <section class="screen" id="screen-online" hidden>
+        <div class="page-bar">
+          <button class="link-btn" id="btnOnlineBack" aria-label="Back to title">&lsaquo; Back</button>
+          <h2 class="page-bar__title">Play Online</h2>
+          <span class="page-bar__spacer"></span>
+        </div>
+        <div class="card">
+          <p class="card__lead">Pick a role to start.</p>
+          <div class="btn-row btn-row--stack">
+            <button class="btn btn--primary  btn--big" id="btnHostLobby">Host a Lobby</button>
+            <button class="btn btn--secondary btn--big" id="btnJoinLobby">Join a Lobby</button>
+          </div>
+          <p class="status status--neutral" id="onlineStatus">&nbsp;</p>
+        </div>
+      </section>
+
+      <!-- ── Host: waiting for guest ─────────────────────────── -->
+      <section class="screen" id="screen-host-wait" hidden>
+        <div class="page-bar">
+          <button class="link-btn" id="btnHostCancel" aria-label="Cancel hosting">&lsaquo; Cancel</button>
+          <h2 class="page-bar__title">Hosting</h2>
+          <span class="page-bar__spacer"></span>
+        </div>
+        <div class="card">
+          <p class="label">Lobby Code</p>
+          <p class="lobby-code" id="lobbyCode"></p>
+          <p class="field-hint">Share this code with the player joining.</p>
+          <p class="status" id="hostStatus">Connecting to broker…</p>
+        </div>
+      </section>
+
+      <!-- ── Guest: join with code ──────────────────────────── -->
+      <section class="screen" id="screen-join" hidden>
+        <div class="page-bar">
+          <button class="link-btn" id="btnJoinBack" aria-label="Back">&lsaquo; Back</button>
+          <h2 class="page-bar__title">Join a Lobby</h2>
+          <span class="page-bar__spacer"></span>
+        </div>
+        <div class="card">
+          <p class="label">Lobby Code</p>
+          <input type="text"
+                 id="joinCode"
+                 class="input input--code"
+                 placeholder="ABC123"
+                 autocomplete="off"
+                 autocorrect="off"
+                 autocapitalize="characters"
+                 spellcheck="false"
+                 maxlength="6">
+          <div class="btn-row">
+            <button class="btn btn--primary" id="btnJoinConnect">Connect</button>
+          </div>
+          <p class="status" id="joinStatus">&nbsp;</p>
         </div>
       </section>
 
@@ -178,8 +241,7 @@
           <p class="status" id="gameStatus">White to move.</p>
 
           <div class="btn-row">
-            <button class="btn btn--primary" id="btnRestart">Restart</button>
-            <button class="btn btn--secondary" id="btnUndo">Undo</button>
+            <button class="btn btn--primary" id="btnRestart">Undo</button>
             <button class="btn btn--ghost" id="btnFlip">Flip</button>
           </div>
 

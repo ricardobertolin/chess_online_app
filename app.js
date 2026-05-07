@@ -27,13 +27,30 @@ const $ = (id) => document.getElementById(id);
 
 const screens = {
   title:     $('screen-title'),
+  online:    $('screen-online'),
+  hostWait:  $('screen-host-wait'),
+  join:      $('screen-join'),
   menu:      $('screen-menu'),
   customize: $('screen-customize'),
   game:      $('screen-game'),
 };
 
 // title controls
-const btnPlay         = $('btnPlay');
+const btnSinglePlayer = $('btnSinglePlayer');
+const btnOnline       = $('btnOnline');
+
+// online controls
+const btnOnlineBack   = $('btnOnlineBack');
+const btnHostLobby    = $('btnHostLobby');
+const btnJoinLobby    = $('btnJoinLobby');
+const onlineStatus    = $('onlineStatus');
+const btnHostCancel   = $('btnHostCancel');
+const lobbyCodeEl     = $('lobbyCode');
+const hostStatus      = $('hostStatus');
+const btnJoinBack     = $('btnJoinBack');
+const joinCodeEl      = $('joinCode');
+const btnJoinConnect  = $('btnJoinConnect');
+const joinStatus      = $('joinStatus');
 
 // menu controls
 const btnBackToTitle  = $('btnBackToTitle');
@@ -68,8 +85,7 @@ const clockBottom   = $('clockBottom');
 const captureTop    = $('captureTop');
 const captureBottom = $('captureBottom');
 const gameStatus    = $('gameStatus');
-const btnRestart    = $('btnRestart');
-const btnUndo       = $('btnUndo');
+const btnRestart    = $('btnRestart');  // doubles as Undo / Restart depending on game state
 const btnFlip       = $('btnFlip');
 const btnMenu       = $('btnMenu');
 const historyList   = $('historyList');
@@ -86,6 +102,10 @@ const PRESETS_KEY        = 'chess_presets_v1';
 const LAST_CONFIG_KEY    = 'chess_last_config_v1';
 const CUSTOM_PRESETS_KEY = 'chess_piece_presets_v1';
 const LAST_CUSTOM_KEY    = 'chess_last_custom_v1';
+
+const ID_PREFIX     = 'chess-mp-v1-';
+const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+const CODE_LEN      = 6;
 
 const DEFAULT_CONFIG = {
   timeControl: { mode: 'none', minutes: 5, increment: 0 },
@@ -141,6 +161,15 @@ let legalForSelected   = [];
 let lastMove           = null;
 let flipped            = false;
 let pendingPromo       = null;
+
+// Online state
+let mode    = 'single';          // 'single' | 'host' | 'guest'
+let peer    = null;
+let conn    = null;
+let myColor = null;              // 'w' | 'b' | null  (online only)
+
+// Vote state for the dual-purpose action button (Undo while playing, Restart after end)
+let pendingVote = { kind: null, mine: false, theirs: false };
 
 // Clock UI state
 let clockStartedAt = null;       // ms timestamp when active player's clock began
@@ -852,7 +881,29 @@ function render() {
   renderClocks();
   renderStatus();
   renderHistory();
-  btnUndo.disabled = undoStack.length === 0 || isGameOver();
+  renderActionButton();
+}
+
+function renderActionButton() {
+  const isOver  = isGameOver();
+  const kind    = isOver ? 'restart' : 'undo';
+  const baseLbl = kind === 'restart' ? 'Restart' : 'Undo';
+
+  // If the situation changed under us, drop a stale vote
+  if (pendingVote.kind && pendingVote.kind !== kind) resetVote();
+
+  if (mode === 'single') {
+    btnRestart.textContent = baseLbl;
+    // No undoable moves yet → disable. Restart is always available.
+    btnRestart.disabled = (kind === 'undo') && undoStack.length === 0;
+    return;
+  }
+
+  // Online: vote-based — show count, mark when local has voted
+  const count = (pendingVote.kind === kind ? (pendingVote.mine ? 1 : 0) + (pendingVote.theirs ? 1 : 0) : 0);
+  const voted = pendingVote.kind === kind && pendingVote.mine;
+  btnRestart.textContent = `${voted ? '✓ ' : ''}${baseLbl} ${count}/2`;
+  btnRestart.disabled = false;
 }
 
 /* ── Clock ───────────────────────────────────────────────────── */
@@ -914,12 +965,14 @@ function formatClock(ms) {
 /* ── Move execution ──────────────────────────────────────────── */
 function onSquareClick(idx) {
   if (isGameOver() || pendingPromo) return;
+  // Online guest: only allow interaction on own turn
+  if (mode !== 'single' && state.turn !== myColor) return;
 
   const piece = state.board[idx];
 
   if (selected !== null) {
     const matches = legalForSelected.filter(m => m.to === idx);
-    if (matches.length === 1) { finalizeMove(matches[0]); return; }
+    if (matches.length === 1) { commitMove(matches[0]); return; }
     if (matches.length  >  1) { showPromotion(matches);   return; }
     if (piece && piece.color === state.turn) {
       selected = idx;
@@ -938,6 +991,11 @@ function onSquareClick(idx) {
     legalForSelected = legalMoves(state, idx);
     render();
   }
+}
+
+function commitMove(mv) {
+  if (mode === 'guest') sendMoveToHost(mv);
+  else                  finalizeMove(mv);
 }
 
 function showPromotion(candidates) {
@@ -976,6 +1034,7 @@ function finalizeMove(mv) {
 
   undoStack.push(before);
   const moverPiece = before.board[mv.from];
+  const moverType = moverPiece ? moverPiece.type : null;
   applyMoveTo(state, mv);
   refreshStatus(state);
   state.moves.push(moveToSAN(before, mv));
@@ -983,16 +1042,13 @@ function finalizeMove(mv) {
   selected = null;
   legalForSelected = [];
 
-  if (moverPiece) {
-    if (mv.capture) {
-      playPieceSound(moverPiece.type, 'killSound');
-      const captures = state.captured[moverColor];
-      const victim = captures[captures.length - 1];
-      if (victim) playPieceSound(victim.type, 'dieSound');
-    } else {
-      playPieceSound(moverPiece.type, 'moveSound');
-    }
+  let victimType = null;
+  if (mv.capture) {
+    const captures = state.captured[moverColor];
+    const victim = captures[captures.length - 1];
+    if (victim) victimType = victim.type;
   }
+  playMoveSounds(mv, moverType, victimType);
 
   if (isGameOver()) {
     clockStartedAt = null;
@@ -1001,7 +1057,31 @@ function finalizeMove(mv) {
     clockStartedAt = Date.now();
   }
 
+  // Any pending vote is no longer relevant — a move has happened
+  resetVote();
+
+  // Online: host broadcasts the result so the guest stays in sync
+  if (mode === 'host' && conn && conn.open) {
+    try { conn.send({ type: 'state', state, mv, moverType, victimType }); } catch (e) {}
+  }
+
   render();
+}
+
+function playMoveSounds(mv, moverType, victimType) {
+  if (!moverType || !mv) return;
+  if (mv.capture) {
+    playPieceSound(moverType, 'killSound');
+    if (victimType) playPieceSound(victimType, 'dieSound');
+  } else {
+    playPieceSound(moverType, 'moveSound');
+  }
+}
+
+function sendMoveToHost(mv) {
+  if (conn && conn.open) {
+    try { conn.send({ type: 'move', mv }); } catch (e) {}
+  }
 }
 
 document.querySelectorAll('.promo-btn').forEach(btn => {
@@ -1010,17 +1090,17 @@ document.querySelectorAll('.promo-btn').forEach(btn => {
     const mv = pendingPromo.find(m => m.promo === btn.dataset.promo);
     pendingPromo = null;
     promoModal.hidden = true;
-    if (mv) finalizeMove(mv);
+    if (mv) commitMove(mv);
   });
 });
 
 /* ── Game-screen buttons ─────────────────────────────────────── */
-btnRestart.addEventListener('click', () => {
-  if (currentConfig) startGame(currentConfig, currentCustom);
-});
+function resetVote() {
+  pendingVote = { kind: null, mine: false, theirs: false };
+}
 
-btnUndo.addEventListener('click', () => {
-  if (!undoStack.length || isGameOver()) return;
+function performUndo() {
+  if (!undoStack.length) return;
   state = undoStack.pop();
   selected = null;
   legalForSelected = [];
@@ -1032,6 +1112,66 @@ btnUndo.addEventListener('click', () => {
     clockStartedAt = null;
     stopClockTick();
   }
+  // Online: host broadcasts restored state to guest
+  if (mode === 'host' && conn && conn.open) {
+    try {
+      conn.send({ type: 'state', state, mv: null, moverType: null, victimType: null });
+    } catch (e) {}
+  }
+  render();
+}
+
+function fireVotedAction(kind) {
+  if (kind === 'restart') {
+    if (currentConfig) startGame(currentConfig, currentCustom);
+  } else if (kind === 'undo') {
+    performUndo();
+  }
+}
+
+function checkVoteResult() {
+  if (pendingVote.mine && pendingVote.theirs) {
+    const kind = pendingVote.kind;
+    resetVote();
+    // Only the host actually mutates state — guest just clears the vote and
+    // waits for the host's next state broadcast.
+    if (mode === 'host') fireVotedAction(kind);
+  }
+}
+
+function sendVote(kind, vote) {
+  if (conn && conn.open) {
+    try { conn.send({ type: 'vote', kind, vote }); } catch (e) {}
+  }
+}
+
+function receiveVote(kind, vote) {
+  if (pendingVote.kind !== kind) {
+    pendingVote = { kind, mine: false, theirs: vote };
+  } else {
+    pendingVote.theirs = vote;
+  }
+  checkVoteResult();
+  render();
+}
+
+btnRestart.addEventListener('click', () => {
+  if (!state) return;
+  const kind = isGameOver() ? 'restart' : 'undo';
+
+  if (mode === 'single') {
+    fireVotedAction(kind);
+    return;
+  }
+
+  // Online: toggle local vote and notify opponent
+  if (pendingVote.kind !== kind) {
+    pendingVote = { kind, mine: true, theirs: false };
+  } else {
+    pendingVote.mine = !pendingVote.mine;
+  }
+  sendVote(kind, pendingVote.mine);
+  checkVoteResult();
   render();
 });
 
@@ -1041,14 +1181,31 @@ btnFlip.addEventListener('click', () => {
 });
 
 btnMenu.addEventListener('click', () => {
+  if (mode === 'single') {
+    state = null;
+    undoStack = [];
+    stopClockTick();
+    clockStartedAt = null;
+    pendingPromo = null;
+    promoModal.hidden = true;
+    showScreen('menu');
+  } else {
+    leaveOnline();
+  }
+});
+
+function leaveOnline() {
+  teardownConnection();
   state = null;
   undoStack = [];
   stopClockTick();
   clockStartedAt = null;
   pendingPromo = null;
   promoModal.hidden = true;
-  showScreen('menu');
-});
+  mode = 'single';
+  updateStartGameButton();
+  showScreen('title');
+}
 
 /* ── Menu / config form ──────────────────────────────────────── */
 function readConfigFromForm() {
@@ -1177,8 +1334,36 @@ function showScreen(name) {
   }
 }
 
-btnPlay.addEventListener('click', () => showScreen('menu'));
-btnBackToTitle.addEventListener('click', () => showScreen('title'));
+function updateStartGameButton() {
+  const label = mode === 'host' ? 'Create Lobby' : 'Start Game';
+  if (btnStartGame)       btnStartGame.textContent = label;
+  if (btnStartCustomGame) btnStartCustomGame.textContent = label;
+}
+
+btnSinglePlayer.addEventListener('click', () => {
+  mode = 'single';
+  updateStartGameButton();
+  showScreen('menu');
+});
+
+btnOnline.addEventListener('click', () => {
+  if (typeof Peer === 'undefined') {
+    setOnlineStatus(onlineStatus, 'PeerJS failed to load — check your connection and reload.', 'bad');
+  } else {
+    setOnlineStatus(onlineStatus, '', 'neutral');
+  }
+  showScreen('online');
+});
+
+btnBackToTitle.addEventListener('click', () => {
+  if (mode === 'host') {
+    showScreen('online');
+  } else {
+    mode = 'single';
+    updateStartGameButton();
+    showScreen('title');
+  }
+});
 
 function startGame(cfg, customCfg) {
   currentConfig = JSON.parse(JSON.stringify(cfg));
@@ -1203,8 +1388,25 @@ function startGame(cfg, customCfg) {
     stopClockTick();
   }
 
+  if (mode === 'host') flipped = false;
+  if (mode === 'guest') flipped = (myColor === 'b');
+
+  resetVote();
   showScreen('game');
   render();
+
+  // Online host: bring the guest to the same starting state
+  if (mode === 'host' && conn && conn.open) {
+    try {
+      conn.send({
+        type: 'welcome',
+        yourColor: 'b',
+        matchCfg: cfg,
+        customCfg: customCfg,
+        state: state,
+      });
+    } catch (e) {}
+  }
 }
 
 btnStartGame.addEventListener('click', () => {
@@ -1212,6 +1414,8 @@ btnStartGame.addEventListener('click', () => {
   if (cfg.useCustomPieces) {
     pendingMatchConfig = cfg;
     openCustomizeScreen();
+  } else if (mode === 'host') {
+    createLobby(cfg, null);
   } else {
     startGame(cfg, null);
   }
@@ -1418,8 +1622,253 @@ btnStartCustomGame.addEventListener('click', () => {
   const customCfg = readCustomFromForm();
   try { localStorage.setItem(LAST_CUSTOM_KEY, JSON.stringify(customCfg)); } catch (e) {}
   if (!pendingMatchConfig) pendingMatchConfig = readConfigFromForm();
-  startGame(pendingMatchConfig, customCfg);
+  if (mode === 'host') {
+    createLobby(pendingMatchConfig, customCfg);
+  } else {
+    startGame(pendingMatchConfig, customCfg);
+  }
   pendingMatchConfig = null;
+});
+
+/* ── Online play (PeerJS) ───────────────────────────────────── */
+function setOnlineStatus(el, text, kind) {
+  if (!el) return;
+  el.textContent = text || ' ';
+  el.className = 'status' + (kind ? ' status--' + kind : '');
+}
+
+function generateCode() {
+  let s = '';
+  const buf = new Uint8Array(CODE_LEN);
+  crypto.getRandomValues(buf);
+  for (let i = 0; i < CODE_LEN; i++) s += CODE_ALPHABET[buf[i] % CODE_ALPHABET.length];
+  return s;
+}
+
+function ensurePeer(customId) {
+  if (peer) { try { peer.destroy(); } catch (_) {} peer = null; }
+  peer = customId ? new Peer(customId) : new Peer();
+  peer.on('error', (err) => {
+    console.warn('[Peer] error:', err);
+    if (err.type === 'unavailable-id') {
+      setOnlineStatus(hostStatus, 'Lobby code already in use — try again.', 'bad');
+    } else if (err.type === 'peer-unavailable') {
+      setOnlineStatus(joinStatus, 'No lobby with that code is open.', 'bad');
+      btnJoinConnect.disabled = false;
+    } else if (err.type === 'network' || err.type === 'server-error' || err.type === 'socket-error') {
+      const target = mode === 'guest' ? joinStatus : hostStatus;
+      setOnlineStatus(target, 'Network error contacting the broker.', 'bad');
+    } else {
+      const target = mode === 'guest' ? joinStatus : hostStatus;
+      setOnlineStatus(target, 'Peer error: ' + err.type, 'bad');
+    }
+  });
+}
+
+function teardownConnection() {
+  if (conn) { try { conn.close(); } catch (_) {} conn = null; }
+  if (peer) { try { peer.destroy(); } catch (_) {} peer = null; }
+  myColor = null;
+}
+
+function createLobby(matchCfg, customCfg) {
+  const code = generateCode();
+  lobbyCodeEl.textContent = code;
+  setOnlineStatus(hostStatus, 'Connecting to broker…', 'neutral');
+  showScreen('hostWait');
+
+  ensurePeer(ID_PREFIX + code);
+
+  peer.on('open', () => {
+    setOnlineStatus(hostStatus, 'Waiting for guest to join…', 'neutral');
+  });
+
+  peer.on('connection', (incoming) => {
+    if (conn && conn.open) {
+      // Lobby already full — politely refuse
+      incoming.on('open', () => {
+        try { incoming.send({ type: 'reject', reason: 'lobby-full' }); } catch (_) {}
+        setTimeout(() => { try { incoming.close(); } catch (_) {} }, 100);
+      });
+      return;
+    }
+
+    incoming.on('open', () => {
+      conn = incoming;
+      myColor = 'w';
+      // startGame will broadcast 'welcome' since mode === 'host' and conn is set
+      startGame(matchCfg, customCfg);
+    });
+
+    incoming.on('data', (msg) => handleHostMessage(msg));
+    incoming.on('close', () => onConnClosed());
+    incoming.on('error', (e) => console.warn('[Host conn] error:', e));
+  });
+}
+
+function joinLobby(code) {
+  setOnlineStatus(joinStatus, 'Connecting to broker…', 'neutral');
+  btnJoinConnect.disabled = true;
+  ensurePeer(null);
+
+  peer.on('open', () => {
+    setOnlineStatus(joinStatus, 'Reaching host…', 'neutral');
+    const c = peer.connect(ID_PREFIX + code, { reliable: true });
+    conn = c;
+    c.on('open', () => {
+      setOnlineStatus(joinStatus, 'Connected — waiting for game start…', 'good');
+    });
+    c.on('data', (msg) => handleGuestMessage(msg));
+    c.on('close', () => onConnClosed());
+    c.on('error', (e) => console.warn('[Guest conn] error:', e));
+  });
+}
+
+function onConnClosed() {
+  conn = null;
+  if (state) {
+    gameStatus.textContent = 'Opponent disconnected.';
+    gameStatus.className = 'status status--warn';
+    stopClockTick();
+  } else if (mode === 'guest') {
+    setOnlineStatus(joinStatus, 'Connection closed.', 'bad');
+    btnJoinConnect.disabled = false;
+  } else if (mode === 'host') {
+    setOnlineStatus(hostStatus, 'Guest disconnected.', 'warn');
+  }
+}
+
+function handleHostMessage(msg) {
+  if (!msg || typeof msg !== 'object') return;
+  if (msg.type === 'move') {
+    if (!state) return;
+    const mv = msg.mv;
+    if (!mv || typeof mv !== 'object') return;
+    if (state.turn === myColor) return; // not the guest's turn
+    const legal = legalMoves(state, mv.from);
+    const found = legal.find(m =>
+      m.from === mv.from && m.to === mv.to && (m.promo || null) === (mv.promo || null)
+    );
+    if (!found) return;
+    finalizeMove(found);
+  } else if (msg.type === 'vote') {
+    receiveVote(msg.kind, msg.vote);
+  }
+}
+
+function handleGuestMessage(msg) {
+  if (!msg || typeof msg !== 'object') return;
+  if (msg.type === 'reject') {
+    const reason = ({ 'lobby-full': 'Lobby is full.' })[msg.reason] || ('Rejected: ' + msg.reason);
+    setOnlineStatus(joinStatus, reason, 'bad');
+    btnJoinConnect.disabled = false;
+    teardownConnection();
+    return;
+  }
+  if (msg.type === 'welcome') {
+    myColor = msg.yourColor;
+    currentConfig = msg.matchCfg;
+    currentCustom = msg.customCfg;
+    state = msg.state;
+    undoStack = [];
+    selected = null;
+    legalForSelected = [];
+    lastMove = null;
+    pendingPromo = null;
+    promoModal.hidden = true;
+    flipped = (myColor === 'b');
+    if (state && state.clocks) {
+      clockStartedAt = Date.now();
+      startClockTick();
+    } else {
+      clockStartedAt = null;
+      stopClockTick();
+    }
+    resetVote();
+    showScreen('game');
+    render();
+    return;
+  }
+  if (msg.type === 'state') {
+    state = msg.state;
+    if (msg.moverType) playMoveSounds(msg.mv, msg.moverType, msg.victimType || null);
+    if (msg.mv && msg.mv.from != null) lastMove = { from: msg.mv.from, to: msg.mv.to };
+    else lastMove = null;
+    selected = null;
+    legalForSelected = [];
+    pendingPromo = null;
+    promoModal.hidden = true;
+    if (state && state.clocks && !isGameOver()) {
+      clockStartedAt = Date.now();
+      startClockTick();
+    } else {
+      clockStartedAt = null;
+      stopClockTick();
+    }
+    resetVote();
+    render();
+    return;
+  }
+  if (msg.type === 'vote') {
+    receiveVote(msg.kind, msg.vote);
+    return;
+  }
+}
+
+/* ── Online navigation ─────────────────────────────────────── */
+btnOnlineBack.addEventListener('click', () => {
+  teardownConnection();
+  mode = 'single';
+  updateStartGameButton();
+  showScreen('title');
+});
+
+btnHostLobby.addEventListener('click', () => {
+  if (typeof Peer === 'undefined') {
+    setOnlineStatus(onlineStatus, 'PeerJS failed to load — reload the page.', 'bad');
+    return;
+  }
+  mode = 'host';
+  updateStartGameButton();
+  showScreen('menu');
+});
+
+btnJoinLobby.addEventListener('click', () => {
+  if (typeof Peer === 'undefined') {
+    setOnlineStatus(onlineStatus, 'PeerJS failed to load — reload the page.', 'bad');
+    return;
+  }
+  mode = 'guest';
+  joinCodeEl.value = '';
+  setOnlineStatus(joinStatus, '', 'neutral');
+  btnJoinConnect.disabled = false;
+  showScreen('join');
+});
+
+btnHostCancel.addEventListener('click', () => {
+  teardownConnection();
+  mode = 'single';
+  updateStartGameButton();
+  showScreen('online');
+});
+
+btnJoinBack.addEventListener('click', () => {
+  teardownConnection();
+  mode = 'single';
+  showScreen('online');
+});
+
+btnJoinConnect.addEventListener('click', () => {
+  const code = (joinCodeEl.value || '').trim().toUpperCase();
+  if (code.length !== CODE_LEN) {
+    setOnlineStatus(joinStatus, `Code must be ${CODE_LEN} characters.`, 'bad');
+    return;
+  }
+  joinLobby(code);
+});
+
+joinCodeEl.addEventListener('input', () => {
+  joinCodeEl.value = joinCodeEl.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
 });
 
 /* ── Boot ────────────────────────────────────────────────────── */
@@ -1433,5 +1882,6 @@ window.addEventListener('DOMContentLoaded', () => {
   } catch (e) {
     writeConfigToForm(DEFAULT_CONFIG);
   }
+  updateStartGameButton();
   showScreen('title');
 });
