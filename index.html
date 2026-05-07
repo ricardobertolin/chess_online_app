@@ -16,24 +16,152 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon.svg">
 </head>
-<body>
+<body data-screen="title">
 
   <div class="app">
 
-    <header class="header">
-      <h1 class="header__title">Chess</h1>
-      <p class="header__subtitle">Pass-and-Play Prototype</p>
-    </header>
-
     <main class="main">
 
-      <section class="screen" id="screen-game">
+      <!-- ── Title page ──────────────────────────────────────── -->
+      <section class="screen screen--title" id="screen-title">
+        <div class="title-card">
+          <div class="title-mark" aria-hidden="true">♚</div>
+          <h1 class="title-name">Chess</h1>
+          <p class="title-tag">Pass-and-Play</p>
+          <div class="title-actions">
+            <button class="btn btn--primary btn--big" id="btnPlay">Play</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Main menu ───────────────────────────────────────── -->
+      <section class="screen" id="screen-menu" hidden>
+        <div class="page-bar">
+          <button class="link-btn" id="btnBackToTitle" aria-label="Back to title">&lsaquo; Back</button>
+          <h2 class="page-bar__title">New Game</h2>
+          <span class="page-bar__spacer"></span>
+        </div>
+
+        <div class="card">
+          <p class="label">Preset</p>
+          <select id="presetSelect" class="select">
+            <option value="">— Defaults —</option>
+          </select>
+          <div class="btn-row btn-row--small">
+            <button class="btn btn--secondary" id="btnSavePreset">Save…</button>
+            <button class="btn btn--ghost" id="btnDeletePreset">Delete</button>
+            <button class="btn btn--ghost" id="btnDefaultPreset">Default</button>
+          </div>
+
+          <p class="label">Time Control</p>
+          <select id="timeMode" class="select">
+            <option value="none">No Limit</option>
+            <option value="side">Per Side (Fischer)</option>
+          </select>
+          <div class="form-inline" id="timeFields" hidden>
+            <label class="inline-label">Minutes
+              <input type="number" id="timeMinutes" min="1" max="180" value="5" class="input input--num">
+            </label>
+            <label class="inline-label">Increment (sec)
+              <input type="number" id="timeIncrement" min="0" max="60" value="0" class="input input--num">
+            </label>
+          </div>
+
+          <p class="label">Win Conditions</p>
+          <div class="form-inline">
+            <span class="inline-label">Stalemate is</span>
+            <select id="stalemateRule" class="select select--inline">
+              <option value="draw">a draw</option>
+              <option value="win">a win for stalemating side</option>
+              <option value="loss">a loss for stalemating side</option>
+            </select>
+          </div>
+          <label class="check-row">
+            <input type="checkbox" id="fiftyMoveRule" checked>
+            <span>Enable 50-move draw rule</span>
+          </label>
+
+          <p class="label">Board Size</p>
+          <div class="radio-row">
+            <label class="radio">
+              <input type="radio" name="boardSize" value="8" checked>
+              <span>8 × 8 — Standard</span>
+            </label>
+            <label class="radio">
+              <input type="radio" name="boardSize" value="6">
+              <span>6 × 6 — Mini (no bishops, no castling)</span>
+            </label>
+          </div>
+
+          <p class="label">Turn Order</p>
+          <div class="radio-row">
+            <label class="radio">
+              <input type="radio" name="firstMove" value="w" checked>
+              <span>White moves first</span>
+            </label>
+            <label class="radio">
+              <input type="radio" name="firstMove" value="b">
+              <span>Black moves first</span>
+            </label>
+          </div>
+
+          <p class="label">Pieces</p>
+          <label class="check-row">
+            <input type="checkbox" id="useCustomPieces">
+            <span>Use custom pieces (image, sound, movement)</span>
+          </label>
+
+          <div class="btn-row">
+            <button class="btn btn--primary" id="btnStartGame">Start Game</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Customize pieces ────────────────────────────────── -->
+      <section class="screen" id="screen-customize" hidden>
+        <div class="page-bar">
+          <button class="link-btn" id="btnCustomizeBack" aria-label="Back to menu">&lsaquo; Back</button>
+          <h2 class="page-bar__title">Custom Pieces</h2>
+          <span class="page-bar__spacer"></span>
+        </div>
+
+        <div class="card">
+          <p class="label">Custom Preset</p>
+          <select id="customPresetSelect" class="select">
+            <option value="">— Blank —</option>
+          </select>
+          <div class="btn-row btn-row--small">
+            <button class="btn btn--secondary" id="btnSaveCustomPreset">Save…</button>
+            <button class="btn btn--ghost" id="btnDeleteCustomPreset">Delete</button>
+            <button class="btn btn--ghost" id="btnDefaultCustomPreset">Default</button>
+          </div>
+
+          <p class="label">Pieces</p>
+          <div class="piece-list" id="pieceList">
+            <!-- generated by JS -->
+          </div>
+
+          <div class="btn-row">
+            <button class="btn btn--primary" id="btnStartCustomGame">Start Game</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Game ────────────────────────────────────────────── -->
+      <section class="screen" id="screen-game" hidden>
+        <div class="page-bar">
+          <button class="link-btn" id="btnMenu" aria-label="Back to menu">&lsaquo; Menu</button>
+          <h2 class="page-bar__title">Chess</h2>
+          <span class="page-bar__spacer"></span>
+        </div>
+
         <div class="card">
 
           <div class="capture-row" id="captureTop" aria-label="Pieces captured by top player"></div>
 
           <div class="tag-wrap">
             <span class="player-tag" id="tagTop">Black</span>
+            <span class="clock" id="clockTop" hidden>--:--</span>
           </div>
 
           <div class="board-wrap">
@@ -42,6 +170,7 @@
 
           <div class="tag-wrap">
             <span class="player-tag" id="tagBottom">White</span>
+            <span class="clock" id="clockBottom" hidden>--:--</span>
           </div>
 
           <div class="capture-row" id="captureBottom" aria-label="Pieces captured by bottom player"></div>
@@ -49,7 +178,7 @@
           <p class="status" id="gameStatus">White to move.</p>
 
           <div class="btn-row">
-            <button class="btn btn--primary" id="btnNew">New Game</button>
+            <button class="btn btn--primary" id="btnRestart">Restart</button>
             <button class="btn btn--secondary" id="btnUndo">Undo</button>
             <button class="btn btn--ghost" id="btnFlip">Flip</button>
           </div>
@@ -77,7 +206,7 @@
     </main>
 
     <footer class="footer">
-      <p>v0.1.0 &nbsp;·&nbsp; Pass-and-Play</p>
+      <p>v0.3.0 &nbsp;·&nbsp; Pass-and-Play</p>
       <p>Made by <span class="footer__author">ricardobertolin</span></p>
     </footer>
 
