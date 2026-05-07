@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls \"C:\\\\Users\\\\ricar\\\\Documentos\\\\_PROJETOS\\\\_Tests\\\\online_mp_test_app\")",
+      "Read(//c/Users/ricar/Documentos/_PROJETOS/_Tests/online_mp_test_app/**)"
+    ]
+  }
+}
