@@ -114,6 +114,14 @@
             <button class="btn btn--primary" id="btnSaveProfile">Save</button>
             <button class="btn btn--ghost"   id="btnDefaultProfile">Default</button>
           </div>
+
+          <p class="label">Backup</p>
+          <div class="btn-row btn-row--small">
+            <button class="btn btn--secondary" id="btnExportProfile">Export…</button>
+            <button class="btn btn--ghost"     id="btnImportProfile">Import…</button>
+          </div>
+          <p class="field-hint">Saves your profile, match presets, and custom-piece presets to a JSON file you can restore later (e.g. after a browser cache wipe).</p>
+          <input type="file" id="profileImportFile" accept="application/json,.json" hidden>
         </div>
       </section>
 

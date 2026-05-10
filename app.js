@@ -58,6 +58,9 @@ const profileBattleMusic= $('profileBattleMusic');
 const profileVictory    = $('profileVictory');
 const btnSaveProfile    = $('btnSaveProfile');
 const btnDefaultProfile = $('btnDefaultProfile');
+const btnExportProfile  = $('btnExportProfile');
+const btnImportProfile  = $('btnImportProfile');
+const profileImportFile = $('profileImportFile');
 
 // online controls
 const btnOnlineBack   = $('btnOnlineBack');
@@ -212,7 +215,9 @@ function blankCustom() {
   for (const t of PIECE_TYPES) {
     pieces[t] = {
       wImg: '', bImg: '',
-      moveSound: '', killSound: '', dieSound: '',
+      moveSound: DEFAULT_PIECE_SOUNDS ? DEFAULT_PIECE_SOUNDS.moveSound : '',
+      killSound: DEFAULT_PIECE_SOUNDS ? DEFAULT_PIECE_SOUNDS.killSound : '',
+      dieSound:  DEFAULT_PIECE_SOUNDS ? DEFAULT_PIECE_SOUNDS.dieSound  : '',
       movement: 'default',
       attack:   'default',  // 'default' = capture along movement; otherwise capture-only pattern
     };
@@ -2854,6 +2859,75 @@ btnSaveProfile.addEventListener('click', () => {
 
 btnDefaultProfile.addEventListener('click', () => {
   writeProfileToForm(DEFAULT_PROFILE);
+});
+
+/* ── Profile backup (export / import JSON) ──────────────────── */
+btnExportProfile.addEventListener('click', () => {
+  const data = {
+    app:          'custom-chess',
+    version:      1,
+    exportedAt:   new Date().toISOString(),
+    profile:      profile,
+    matchPresets: loadPresets(),
+    piecePresets: loadCustomPresets(),
+  };
+  const json = JSON.stringify(data, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  const safeName = (profile.name || 'player').replace(/[^a-z0-9_-]+/gi, '-').toLowerCase();
+  a.href = url;
+  a.download = `custom-chess-profile-${safeName}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+});
+
+btnImportProfile.addEventListener('click', () => {
+  profileImportFile.value = '';
+  profileImportFile.click();
+});
+
+profileImportFile.addEventListener('change', () => {
+  const file = profileImportFile.files && profileImportFile.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const data = JSON.parse(reader.result);
+      if (!data || typeof data !== 'object') throw new Error('Not a valid JSON object');
+
+      const summary = [];
+      if (data.profile && typeof data.profile === 'object') {
+        profile = { ...DEFAULT_PROFILE, ...data.profile };
+        persistProfile();
+        writeProfileToForm(profile);
+        applyProfileBackground();
+        applyMusicProfile();
+        applyMusicVolume();
+        summary.push('profile');
+      }
+      if (Array.isArray(data.matchPresets)) {
+        savePresets(data.matchPresets);
+        refreshPresetSelect();
+        summary.push(`${data.matchPresets.length} match preset(s)`);
+      }
+      if (Array.isArray(data.piecePresets)) {
+        saveCustomPresets(data.piecePresets);
+        refreshCustomPresetSelect();
+        summary.push(`${data.piecePresets.length} piece preset(s)`);
+      }
+
+      alert(summary.length ? 'Imported: ' + summary.join(', ') + '.' : 'Nothing recognised in this file.');
+    } catch (e) {
+      alert('Could not import: ' + (e && e.message ? e.message : 'invalid file'));
+    } finally {
+      profileImportFile.value = '';
+    }
+  };
+  reader.onerror = () => alert('Could not read the file.');
+  reader.readAsText(file);
 });
 
 /* ── End-of-game banner ─────────────────────────────────────── */
