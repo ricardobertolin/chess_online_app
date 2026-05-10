@@ -1,5 +1,5 @@
 /* ============================================================
-   Chess — Pass-and-Play PWA Prototype  v0.2.0
+   Chess — Pass-and-Play PWA Prototype  v0.4.0
    ============================================================
    Single-player local game where one human plays both sides.
    Adds: main menu, configurable rules, time control, board size,
@@ -155,6 +155,10 @@ const ID_PREFIX     = 'chess-mp-v1-';
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const CODE_LEN      = 6;
 
+// Lobby join/leave one-shot sounds
+const LOBBY_JOIN_SOUND  = 'https://cdn.freesound.org/previews/30/30248_56897-hq.mp3';
+const LOBBY_LEAVE_SOUND = 'https://cdn.freesound.org/previews/566/566453_5409451-hq.mp3';
+
 const PROFILE_KEY = 'chess_profile_v1';
 const DEFAULT_PROFILE = {
   name:        'Player',
@@ -250,6 +254,7 @@ let mode    = 'single';          // 'single' | 'host' | 'guest'
 let peer    = null;
 let conn    = null;
 let myColor = null;              // 'w' | 'b' | null  (online only)
+let intentionalLeave = false;    // set briefly while we close the connection ourselves
 
 // Single-vs-AI state
 let aiTimer = null;
@@ -2485,10 +2490,13 @@ function ensurePeer(customId) {
 }
 
 function teardownConnection() {
+  intentionalLeave = true;
   if (conn) { try { conn.close(); } catch (_) {} conn = null; }
   if (peer) { try { peer.destroy(); } catch (_) {} peer = null; }
   myColor = null;
   opponentProfile = null;
+  // Reset shortly after the close handler has had a chance to fire
+  setTimeout(() => { intentionalLeave = false; }, 200);
 }
 
 function createLobby(matchCfg, customCfg) {
@@ -2515,6 +2523,7 @@ function createLobby(matchCfg, customCfg) {
 
     incoming.on('open', () => {
       conn = incoming;
+      playOneShot(LOBBY_JOIN_SOUND);
       myColor = (matchCfg.hostColor === 'b') ? 'b' : 'w';
       // startGame will broadcast 'welcome' since mode === 'host' and conn is set
       startGame(matchCfg, customCfg);
@@ -2537,6 +2546,7 @@ function joinLobby(code) {
     conn = c;
     c.on('open', () => {
       setOnlineStatus(joinStatus, 'Connected — waiting for game start…', 'good');
+      playOneShot(LOBBY_JOIN_SOUND);
     });
     c.on('data', (msg) => handleGuestMessage(msg));
     c.on('close', () => onConnClosed());
@@ -2546,6 +2556,7 @@ function joinLobby(code) {
 
 function onConnClosed() {
   conn = null;
+  if (!intentionalLeave) playOneShot(LOBBY_LEAVE_SOUND);
   if (state) {
     gameStatus.textContent = 'Opponent disconnected.';
     gameStatus.className = 'status status--warn';
@@ -3289,7 +3300,7 @@ document.addEventListener('click', () => {
 /* ── Victory sound (synced via shared profile) ──────────────── */
 let lastResultPlayed = null;
 
-function playVictorySound(url) {
+function playOneShot(url) {
   if (!url) return;
   try {
     const a = new Audio(url);
@@ -3297,6 +3308,7 @@ function playVictorySound(url) {
     a.play().catch(() => {});
   } catch (e) {}
 }
+function playVictorySound(url) { playOneShot(url); }
 
 function maybePlayVictory() {
   if (!state) { lastResultPlayed = null; return; }
