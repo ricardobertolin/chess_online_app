@@ -801,6 +801,13 @@ function legalMoves(st, idx) {
   const enemy = piece.color === 'w' ? 'b' : 'w';
   const result = [];
   for (const mv of pseudoMoves(st, idx)) {
+    // Capturing the enemy king is never a legal move — chess ends at
+    // checkmate first. This guards against any edge case (custom pieces,
+    // power-ups, etc.) where a king might briefly sit on an attackable
+    // square. Without this guard a stray king-capture leaves the loser
+    // with no king, which used to fall through to "stalemate / draw".
+    const target = st.board[mv.to];
+    if (target && target.type === 'k') continue;
     if (mv.castle) {
       const homeRow = piece.color === 'w' ? st.height - 1 : 0;
       const through = mv.castle === 'k' ? FR(st, 5, homeRow) : FR(st, 3, homeRow);
@@ -1425,8 +1432,13 @@ function renderClocks() {
 function renderStatus() {
   let text = '', kind = 'neutral';
   if (state.status === 'checkmate') {
-    text = `Checkmate — ${COLOR_NAME[state.result]} wins.`;
-    kind = 'good';
+    if (state.result === 'draw') {
+      text = 'Checkmate — draw (both kings captured).';
+      kind = 'warn';
+    } else {
+      text = `Checkmate — ${COLOR_NAME[state.result]} wins.`;
+      kind = 'good';
+    }
   } else if (state.status === 'stalemate') {
     if (state.result === 'draw') {
       text = 'Stalemate — draw.';
@@ -3018,8 +3030,13 @@ function maybeShowEndBanner() {
   let icon = '♙', title = 'Game Over', subtitle = '';
   if (state.status === 'checkmate') {
     title    = 'Checkmate';
-    subtitle = `${COLOR_NAME[state.result]} wins`;
-    icon     = state.result === 'w' ? '♔' : '♚'; // ♔ / ♚
+    if (state.result === 'draw') {
+      subtitle = 'Draw — both kings captured';
+      icon     = '½';
+    } else {
+      subtitle = `${COLOR_NAME[state.result]} wins`;
+      icon     = state.result === 'w' ? '♔' : '♚'; // ♔ / ♚
+    }
   } else if (state.status === 'stalemate') {
     if (state.result === 'draw') {
       title = 'Stalemate'; subtitle = 'Draw'; icon = '½';
