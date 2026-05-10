@@ -8,9 +8,9 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Chess">
+  <meta name="apple-mobile-web-app-title" content="Custom Chess">
 
-  <title>Chess · Pass-and-Play</title>
+  <title>Custom Chess · Pass-and-Play</title>
 
   <link rel="stylesheet" href="style.css">
   <link rel="manifest" href="manifest.json">
@@ -31,11 +31,88 @@
       <section class="screen screen--title" id="screen-title">
         <div class="title-card">
           <div class="title-mark" aria-hidden="true">♚</div>
-          <h1 class="title-name">Chess</h1>
+          <h1 class="title-name">Custom Chess</h1>
           <p class="title-tag">Pass-and-Play &amp; Online</p>
           <div class="title-actions">
             <button class="btn btn--primary  btn--big" id="btnSinglePlayer">Single Player</button>
             <button class="btn btn--secondary btn--big" id="btnOnline">Play Online</button>
+            <button class="btn btn--ghost     btn--big" id="btnProfile">Profile</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Profile ────────────────────────────────────────── -->
+      <section class="screen" id="screen-profile" hidden>
+        <div class="page-bar">
+          <button class="link-btn" id="btnProfileBack" aria-label="Back to title">&lsaquo; Back</button>
+          <h2 class="page-bar__title">Profile</h2>
+          <span class="page-bar__spacer"></span>
+        </div>
+        <div class="card">
+          <p class="label">Nickname</p>
+          <input type="text" id="profileName" class="input" maxlength="24" placeholder="Player">
+
+          <p class="label">Profile picture URL</p>
+          <div class="pic-row">
+            <img class="pic-preview" id="profilePicPreview" alt="" hidden>
+            <div class="pic-row__field">
+              <input type="url" id="profilePicUrl" class="input" placeholder="https://… (image or .gif)">
+              <p class="field-hint">Visible to your opponent during online games.</p>
+            </div>
+          </div>
+
+          <p class="label">Sound Effects Volume</p>
+          <div class="form-inline">
+            <input type="range" id="profileSfxVolume" min="0" max="100" value="85" class="slider">
+            <span class="volume-display" id="sfxVolumeDisplay">85%</span>
+          </div>
+
+          <p class="label">Music Volume</p>
+          <div class="form-inline">
+            <input type="range" id="profileMusicVolume" min="0" max="100" value="60" class="slider">
+            <span class="volume-display" id="musicVolumeDisplay">60%</span>
+          </div>
+
+          <p class="label">Background</p>
+          <div class="radio-row">
+            <label class="radio">
+              <input type="radio" name="bgMode" value="default" checked>
+              <span>Default (gold &amp; wood)</span>
+            </label>
+            <label class="radio">
+              <input type="radio" name="bgMode" value="color">
+              <span>Solid color</span>
+            </label>
+            <label class="radio">
+              <input type="radio" name="bgMode" value="image">
+              <span>Image URL</span>
+            </label>
+          </div>
+          <div class="form-inline" id="bgColorWrap" hidden>
+            <input type="color" id="profileBgColor" value="#1c130b" class="color-input">
+            <span class="inline-label">Pick a color</span>
+          </div>
+          <input type="url" id="profileBgImage" class="input" placeholder="https://image-url.jpg" hidden>
+          <p class="field-hint">The background is only visible on your screen.</p>
+
+          <p class="label">Music &amp; Victory</p>
+          <div class="field">
+            <span class="field__label">Menu music URL</span>
+            <input type="url" id="profileMenuMusic" class="input" placeholder="https://… (mp3 or YouTube link)">
+          </div>
+          <div class="field">
+            <span class="field__label">Battle music URL</span>
+            <input type="url" id="profileBattleMusic" class="input" placeholder="https://… (mp3 or YouTube link)">
+          </div>
+          <div class="field">
+            <span class="field__label">Victory sound URL</span>
+            <input type="url" id="profileVictory" class="input" placeholder="https://… (short sound)">
+          </div>
+          <p class="field-hint">Loops in the background. Battle music starts on the first capture; menu music returns when the match ends or you leave. Victory sound plays for both players when you win.</p>
+
+          <div class="btn-row">
+            <button class="btn btn--primary" id="btnSaveProfile">Save</button>
+            <button class="btn btn--ghost"   id="btnDefaultProfile">Default</button>
           </div>
         </div>
       </section>
@@ -116,6 +193,15 @@
             <button class="btn btn--ghost" id="btnDefaultPreset">Default</button>
           </div>
 
+          <p class="label">Game Mode</p>
+          <select id="gameMode" class="select">
+            <option value="standard">Standard Chess</option>
+            <option value="crazyhouse">Crazyhouse — captures join your pocket to drop</option>
+            <option value="kingOfTheHill">King of the Hill — bring your king to the center</option>
+            <option value="threeCheck">Three-Check — deliver 3 checks to win</option>
+            <option value="powerUps">Power-Ups — earn tokens to promote, teleport, randomize</option>
+          </select>
+
           <p class="label">Time Control</p>
           <select id="timeMode" class="select">
             <option value="none">No Limit</option>
@@ -156,6 +242,32 @@
             </label>
           </div>
 
+          <p class="label single-only">Opponent</p>
+          <div class="single-only">
+            <div class="form-inline">
+              <span class="inline-label">Play against</span>
+              <select id="aiOpponent" class="select select--inline">
+                <option value="self">Yourself (pass-and-play)</option>
+                <option value="ai">AI</option>
+              </select>
+            </div>
+            <div class="form-inline ai-only" hidden>
+              <span class="inline-label">Your color</span>
+              <select id="aiPlayerColor" class="select select--inline">
+                <option value="w">White</option>
+                <option value="b">Black</option>
+              </select>
+            </div>
+            <div class="form-inline ai-only" hidden>
+              <span class="inline-label">Difficulty</span>
+              <select id="aiDifficulty" class="select select--inline">
+                <option value="1">Easy (1-ply)</option>
+                <option value="2" selected>Medium (2-ply)</option>
+                <option value="3">Hard (3-ply)</option>
+              </select>
+            </div>
+          </div>
+
           <p class="label">Turn Order</p>
           <div class="radio-row">
             <label class="radio">
@@ -165,6 +277,21 @@
             <label class="radio">
               <input type="radio" name="firstMove" value="b">
               <span>Black moves first</span>
+            </label>
+          </div>
+
+          <p class="label host-only" hidden>Lobby Options</p>
+          <div class="host-only" hidden>
+            <div class="form-inline">
+              <span class="inline-label">Your color</span>
+              <select id="hostColor" class="select select--inline">
+                <option value="w">White</option>
+                <option value="b">Black</option>
+              </select>
+            </div>
+            <label class="check-row">
+              <input type="checkbox" id="shareMusic" checked>
+              <span>Share music — battle theme follows whoever just captured</span>
             </label>
           </div>
 
@@ -200,8 +327,51 @@
           </div>
 
           <p class="label">Pieces</p>
-          <div class="piece-list" id="pieceList">
-            <!-- generated by JS -->
+          <div class="piece-editor" id="pieceEditor">
+            <div class="piece-editor__head">
+              <button type="button" class="piece-nav-btn" id="pieceNavPrev" aria-label="Previous piece">&lsaquo;</button>
+              <div class="piece-editor__title">
+                <span class="piece-editor__icon" id="pieceEditorIcon">&#9819;</span>
+                <span class="piece-editor__name" id="pieceEditorName">Queen</span>
+                <span class="piece-editor__counter" id="pieceEditorCounter">1 / 6</span>
+              </div>
+              <button type="button" class="piece-nav-btn" id="pieceNavNext" aria-label="Next piece">&rsaquo;</button>
+            </div>
+
+            <label class="field">
+              <span class="field__label">White image URL</span>
+              <input type="url" id="pieceWImg" class="input" placeholder="https://…">
+            </label>
+            <label class="field">
+              <span class="field__label">Black image URL</span>
+              <input type="url" id="pieceBImg" class="input" placeholder="https://…">
+            </label>
+
+            <div class="sounds-block">
+              <span class="field__label">Sounds</span>
+              <div class="sound-row">
+                <span class="sound-row__tag">Move</span>
+                <input type="url" id="pieceMoveSound" class="input input--sm" placeholder="https://…">
+              </div>
+              <div class="sound-row">
+                <span class="sound-row__tag">Kill</span>
+                <input type="url" id="pieceKillSound" class="input input--sm" placeholder="https://…">
+              </div>
+              <div class="sound-row">
+                <span class="sound-row__tag">Die</span>
+                <input type="url" id="pieceDieSound" class="input input--sm" placeholder="https://…">
+              </div>
+            </div>
+
+            <label class="field">
+              <span class="field__label">Movement</span>
+              <select id="pieceMovement" class="select"></select>
+            </label>
+            <label class="field">
+              <span class="field__label">Attack</span>
+              <select id="pieceAttack" class="select"></select>
+            </label>
+            <p class="field-hint">Attack determines which squares the piece can capture on. <em>Default</em> = same as movement. Set it differently to make pieces that move and attack on different patterns (e.g. moves like a knight, captures like a bishop).</p>
           </div>
 
           <div class="btn-row">
@@ -214,7 +384,7 @@
       <section class="screen" id="screen-game" hidden>
         <div class="page-bar">
           <button class="link-btn" id="btnMenu" aria-label="Back to menu">&lsaquo; Menu</button>
-          <h2 class="page-bar__title">Chess</h2>
+          <h2 class="page-bar__title">Custom Chess</h2>
           <span class="page-bar__spacer"></span>
         </div>
 
@@ -223,15 +393,29 @@
           <div class="capture-row" id="captureTop" aria-label="Pieces captured by top player"></div>
 
           <div class="tag-wrap">
+            <img class="profile-pic" id="profilePicTop" alt="" hidden>
+            <span class="profile-name" id="profileNameTop" hidden></span>
             <span class="player-tag" id="tagTop">Black</span>
             <span class="clock" id="clockTop" hidden>--:--</span>
           </div>
 
+          <div class="powerup-row" id="powerupRowTop" hidden></div>
+
           <div class="board-wrap">
             <div class="board" id="board" aria-label="Chess board" role="grid"></div>
+            <div class="game-banner" id="gameBanner" hidden>
+              <button class="game-banner__close" id="gameBannerClose" aria-label="Dismiss">&times;</button>
+              <div class="game-banner__icon" id="gameBannerIcon" aria-hidden="true">&#9818;</div>
+              <div class="game-banner__title" id="gameBannerTitle">Checkmate</div>
+              <div class="game-banner__subtitle" id="gameBannerSubtitle">White wins</div>
+            </div>
           </div>
 
+          <div class="powerup-row" id="powerupRowBot" hidden></div>
+
           <div class="tag-wrap">
+            <img class="profile-pic" id="profilePicBot" alt="" hidden>
+            <span class="profile-name" id="profileNameBot" hidden></span>
             <span class="player-tag" id="tagBottom">White</span>
             <span class="clock" id="clockBottom" hidden>--:--</span>
           </div>
@@ -272,6 +456,12 @@
       <p>Made by <span class="footer__author">ricardobertolin</span></p>
     </footer>
 
+  </div>
+
+  <!-- Hidden host for YouTube iframe music players -->
+  <div class="music-host" aria-hidden="true">
+    <div id="menuMusicPlayer"></div>
+    <div id="battleMusicPlayer"></div>
   </div>
 
   <script src="app.js"></script>

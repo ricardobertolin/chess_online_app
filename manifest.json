@@ -1,6 +1,6 @@
 {
-  "name": "Chess — Pass-and-Play",
-  "short_name": "Chess",
+  "name": "Custom Chess — Pass-and-Play",
+  "short_name": "Custom Chess",
   "description": "A pass-and-play chess PWA prototype.",
   "start_url": "./",
   "display": "standalone",

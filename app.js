@@ -27,6 +27,7 @@ const $ = (id) => document.getElementById(id);
 
 const screens = {
   title:     $('screen-title'),
+  profile:   $('screen-profile'),
   online:    $('screen-online'),
   hostWait:  $('screen-host-wait'),
   join:      $('screen-join'),
@@ -38,6 +39,25 @@ const screens = {
 // title controls
 const btnSinglePlayer = $('btnSinglePlayer');
 const btnOnline       = $('btnOnline');
+const btnProfile      = $('btnProfile');
+
+// profile controls
+const btnProfileBack    = $('btnProfileBack');
+const profileName       = $('profileName');
+const profilePicUrl     = $('profilePicUrl');
+const profilePicPreview = $('profilePicPreview');
+const profileSfxVolume     = $('profileSfxVolume');
+const profileMusicVolume   = $('profileMusicVolume');
+const sfxVolumeDisplay     = $('sfxVolumeDisplay');
+const musicVolumeDisplay   = $('musicVolumeDisplay');
+const profileBgColor    = $('profileBgColor');
+const profileBgImage    = $('profileBgImage');
+const bgColorWrap       = $('bgColorWrap');
+const profileMenuMusic  = $('profileMenuMusic');
+const profileBattleMusic= $('profileBattleMusic');
+const profileVictory    = $('profileVictory');
+const btnSaveProfile    = $('btnSaveProfile');
+const btnDefaultProfile = $('btnDefaultProfile');
 
 // online controls
 const btnOnlineBack   = $('btnOnlineBack');
@@ -58,6 +78,7 @@ const presetSelect    = $('presetSelect');
 const btnSavePreset    = $('btnSavePreset');
 const btnDeletePreset  = $('btnDeletePreset');
 const btnDefaultPreset = $('btnDefaultPreset');
+const gameModeSelect  = $('gameMode');
 const timeMode        = $('timeMode');
 const timeFields      = $('timeFields');
 const timeMinutes     = $('timeMinutes');
@@ -65,6 +86,11 @@ const timeIncrement   = $('timeIncrement');
 const stalemateRule   = $('stalemateRule');
 const fiftyMoveRule   = $('fiftyMoveRule');
 const useCustomPieces = $('useCustomPieces');
+const hostColorSelect = $('hostColor');
+const shareMusicEl    = $('shareMusic');
+const aiOpponentSelect    = $('aiOpponent');
+const aiPlayerColorSelect = $('aiPlayerColor');
+const aiDifficultySelect  = $('aiDifficulty');
 const btnStartGame    = $('btnStartGame');
 
 // customize controls
@@ -73,15 +99,26 @@ const customPresetSelect    = $('customPresetSelect');
 const btnSaveCustomPreset    = $('btnSaveCustomPreset');
 const btnDeleteCustomPreset  = $('btnDeleteCustomPreset');
 const btnDefaultCustomPreset = $('btnDefaultCustomPreset');
-const pieceList             = $('pieceList');
+const pieceEditor           = $('pieceEditor');
 const btnStartCustomGame    = $('btnStartCustomGame');
 
 // game controls
 const boardEl       = $('board');
-const tagTop        = $('tagTop');
-const tagBottom     = $('tagBottom');
-const clockTop      = $('clockTop');
-const clockBottom   = $('clockBottom');
+const tagTop          = $('tagTop');
+const tagBottom       = $('tagBottom');
+const gameBanner         = $('gameBanner');
+const gameBannerIcon     = $('gameBannerIcon');
+const gameBannerTitle    = $('gameBannerTitle');
+const gameBannerSubtitle = $('gameBannerSubtitle');
+const gameBannerClose    = $('gameBannerClose');
+const clockTop        = $('clockTop');
+const clockBottom     = $('clockBottom');
+const profilePicTop   = $('profilePicTop');
+const profilePicBot   = $('profilePicBot');
+const profileNameTop  = $('profileNameTop');
+const profileNameBot  = $('profileNameBot');
+const powerupRowTop   = $('powerupRowTop');
+const powerupRowBot   = $('powerupRowBot');
 const captureTop    = $('captureTop');
 const captureBottom = $('captureBottom');
 const gameStatus    = $('gameStatus');
@@ -98,6 +135,14 @@ const PIECE_TYPES = ['k', 'q', 'r', 'b', 'n', 'p'];
 const COLOR_NAME  = { w: 'White', b: 'Black' };
 const VALUE       = { p:1, n:3, b:3, r:5, q:9, k:0 };
 
+// Power-Ups game mode
+const POWER_UP_TYPES   = ['promote', 'teleport', 'randomize'];
+const POWER_UP_SYMBOLS = { promote: '↑', teleport: '⇄', randomize: '?' };
+const POWER_UP_NAMES   = { promote: 'Promote', teleport: 'Teleport', randomize: 'Randomize' };
+function randomPowerUpType() {
+  return POWER_UP_TYPES[Math.floor(Math.random() * POWER_UP_TYPES.length)];
+}
+
 const PRESETS_KEY        = 'chess_presets_v1';
 const LAST_CONFIG_KEY    = 'chess_last_config_v1';
 const CUSTOM_PRESETS_KEY = 'chess_piece_presets_v1';
@@ -107,15 +152,36 @@ const ID_PREFIX     = 'chess-mp-v1-';
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const CODE_LEN      = 6;
 
+const PROFILE_KEY = 'chess_profile_v1';
+const DEFAULT_PROFILE = {
+  name:        'Player',
+  picUrl:      '',
+  sfxVolume:   85,         // move/kill/die/victory sounds
+  musicVolume: 60,         // background music tracks
+  bgMode:      'default',  // 'default' | 'color' | 'image'
+  bgColor:     '#1c130b',
+  bgImage:     '',
+  menuMusic:   '',
+  battleMusic: '',
+  victoryUrl:  '',
+};
+
 const DEFAULT_CONFIG = {
   timeControl: { mode: 'none', minutes: 5, increment: 0 },
   rules:       { stalemate: 'draw', fiftyMoveRule: true },
   size:        8,
   firstMove:   'w',
+  gameMode:    'standard', // 'standard' | 'crazyhouse' | 'kingOfTheHill' | 'threeCheck'
   useCustomPieces: false,
+  hostColor:   'w',   // online host only — which color the host plays
+  shareMusic:  true,  // online host only — sync music URLs and follow capturer
+  opponent:    'self',// single-only — 'self' (pass-and-play) | 'ai'
+  playerColor: 'w',   // single-only, vs-AI — which color the human plays
+  aiDifficulty: 2,    // single-only, vs-AI — search depth (1..3)
 };
 
 const MOVEMENT_PATTERNS = {
+  none:       { type: 'none' },
   king:       { type: 'leap',  offsets: [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]] },
   knight:     { type: 'leap',  offsets: [[1,2],[2,1],[2,-1],[1,-2],[-1,-2],[-2,-1],[-2,1],[-1,2]] },
   rook:       { type: 'slide', dirs:    [[1,0],[-1,0],[0,1],[0,-1]] },
@@ -126,8 +192,11 @@ const MOVEMENT_PATTERNS = {
   chancellor: { type: 'compound', parts: ['knight', 'rook'] },
 };
 
+// Movement / Attack picker options. Labels are tweaked per-dropdown in
+// buildPieceEditor (so 'none' reads "Cannot move" vs "Cannot capture").
 const MOVEMENT_OPTIONS = [
   { value: 'default',    label: 'Default (piece-standard)' },
+  { value: 'none',       label: 'None — disabled' },
   { value: 'king',       label: 'King — one step any direction' },
   { value: 'knight',     label: 'Knight — L-shape jump' },
   { value: 'rook',       label: 'Rook — orthogonal slide' },
@@ -145,9 +214,16 @@ function blankCustom() {
       wImg: '', bImg: '',
       moveSound: '', killSound: '', dieSound: '',
       movement: 'default',
+      attack:   'default',  // 'default' = capture along movement; otherwise capture-only pattern
     };
   }
   return { pieces };
+}
+
+function getAttackOverride(st, type) {
+  const a = st && st.custom && st.custom.pieces && st.custom.pieces[type] && st.custom.pieces[type].attack;
+  if (!a || a === 'default') return null;
+  return MOVEMENT_PATTERNS[a] || null;
 }
 
 /* ── Game state ──────────────────────────────────────────────── */
@@ -157,6 +233,8 @@ let currentCustom      = null;   // custom-piece config bound to `state`
 let pendingMatchConfig = null;   // match config in flight while user customizes
 let undoStack          = [];
 let selected           = null;
+let selectedDrop       = null;   // crazyhouse: piece type currently being dropped
+let activePowerUp      = null;   // power-ups: { type, color, idx, step, sourceIdx? }
 let legalForSelected   = [];
 let lastMove           = null;
 let flipped            = false;
@@ -168,8 +246,19 @@ let peer    = null;
 let conn    = null;
 let myColor = null;              // 'w' | 'b' | null  (online only)
 
+// Single-vs-AI state
+let aiTimer = null;
+
 // Vote state for the dual-purpose action button (Undo while playing, Restart after end)
 let pendingVote = { kind: null, mine: false, theirs: false };
+
+// Profile (local + opponent's)
+let profile         = { ...DEFAULT_PROFILE };
+let opponentProfile = null;  // { name, picUrl } when set in online mode
+
+// End-of-game banner state
+let endedAt          = null;   // ms timestamp when the game ended (or opponent left)
+let bannerShownForEnd = false; // becomes true once we've shown the end banner this game
 
 // Clock UI state
 let clockStartedAt = null;       // ms timestamp when active player's clock began
@@ -225,6 +314,10 @@ function freshGame(cfg, customCfg) {
     timeControl: { ...cfg.timeControl },
     clocks: tcMode === 'side' ? { w: startMs, b: startMs } : null,
     custom: customCfg ? JSON.parse(JSON.stringify(customCfg)) : null,
+    gameMode: cfg.gameMode || 'standard',
+    pockets:  cfg.gameMode === 'crazyhouse' ? { w: [], b: [] } : null,
+    checks:   cfg.gameMode === 'threeCheck' ? { w: 0, b: 0 } : null,
+    powerUps: cfg.gameMode === 'powerUps'   ? { w: [], b: [] } : null,
   };
 }
 
@@ -249,6 +342,10 @@ function cloneState(s) {
     timeControl: { ...s.timeControl },
     clocks: s.clocks ? { ...s.clocks } : null,
     custom: s.custom,  // immutable during play, share by reference
+    gameMode: s.gameMode,
+    pockets:  s.pockets ? { w: s.pockets.w.slice(), b: s.pockets.b.slice() } : null,
+    checks:   s.checks  ? { ...s.checks } : null,
+    powerUps: s.powerUps ? { w: s.powerUps.w.slice(), b: s.powerUps.b.slice() } : null,
   };
 }
 
@@ -261,6 +358,8 @@ function getMovementOverride(st, type) {
 
 function movesFromPattern(st, idx, pattern) {
   const moves = [];
+  if (!pattern || pattern.type === 'none') return moves;
+
   const piece = st.board[idx];
   const W = st.width;
   const f = idx % W, r = Math.floor(idx / W);
@@ -303,6 +402,8 @@ function movesFromPattern(st, idx, pattern) {
 }
 
 function patternReaches(st, fromIdx, targetIdx, pattern) {
+  if (!pattern || pattern.type === 'none') return false;
+
   const W = st.width;
   const f = fromIdx % W, r = Math.floor(fromIdx / W);
   const tf = targetIdx % W, tr = Math.floor(targetIdx / W);
@@ -333,8 +434,56 @@ function pseudoMoves(st, idx) {
   const piece = st.board[idx];
   if (!piece) return [];
 
+  let moves = pseudoMovesByMovement(st, idx);
+
+  // Attack override: replace the standard capture targets with hits from the
+  // chosen attack pattern. Non-capture moves come from the movement pattern.
+  const attackPat = getAttackOverride(st, piece.type);
+  if (attackPat) {
+    moves = moves.filter(m => !m.capture);
+    let attackMoves = movesFromPattern(st, idx, attackPat).filter(m => m.capture);
+    if (piece.type === 'p') {
+      const promoRow = piece.color === 'w' ? 0 : st.height - 1;
+      const expanded = [];
+      for (const a of attackMoves) {
+        if (rankOf(st, a.to) === promoRow) {
+          for (const promo of ['q','r','b','n']) expanded.push({ ...a, promo });
+        } else {
+          expanded.push(a);
+        }
+      }
+      attackMoves = expanded;
+    }
+    moves = moves.concat(attackMoves);
+  }
+
+  return moves;
+}
+
+function pseudoMovesByMovement(st, idx) {
+  const piece = st.board[idx];
+  if (!piece) return [];
+
   const override = getMovementOverride(st, piece.type);
-  if (override) return movesFromPattern(st, idx, override);
+  if (override) {
+    const moves = movesFromPattern(st, idx, override);
+    // Promotion is a property of the PAWN piece, not its movement.
+    // If a pawn (custom-moving or not) lands on the back rank, expand the
+    // single move into the four promotion choices.
+    if (piece.type === 'p') {
+      const promoRow = piece.color === 'w' ? 0 : st.height - 1;
+      const expanded = [];
+      for (const mv of moves) {
+        if (rankOf(st, mv.to) === promoRow) {
+          for (const promo of ['q','r','b','n']) expanded.push({ ...mv, promo });
+        } else {
+          expanded.push(mv);
+        }
+      }
+      return expanded;
+    }
+    return moves;
+  }
 
   const moves = [];
   const W = st.width, H = st.height;
@@ -447,11 +596,16 @@ function isAttacked(st, idx, byColor) {
   for (let i = 0; i < total; i++) {
     const p = st.board[i];
     if (!p || p.color !== byColor) continue;
-    const override = getMovementOverride(st, p.type);
-    if (override) {
-      if (patternReaches(st, i, idx, override)) return true;
-    } else if (defaultPieceAttacks(st, i, idx)) {
-      return true;
+    const attackPat = getAttackOverride(st, p.type);
+    if (attackPat) {
+      if (patternReaches(st, i, idx, attackPat)) return true;
+    } else {
+      const movePat = getMovementOverride(st, p.type);
+      if (movePat) {
+        if (patternReaches(st, i, idx, movePat)) return true;
+      } else if (defaultPieceAttacks(st, i, idx)) {
+        return true;
+      }
     }
   }
   return false;
@@ -508,8 +662,69 @@ function findKing(st, color) {
   return -1;
 }
 
+/* ── Crazyhouse drop moves ──────────────────────────────────── */
+function dropMoves(st) {
+  const out = [];
+  if (!st.pockets) return out;
+  const pocket = st.pockets[st.turn] || [];
+  if (!pocket.length) return out;
+  const types = Array.from(new Set(pocket));
+  const total = st.width * st.height;
+  for (const type of types) {
+    for (let i = 0; i < total; i++) {
+      if (st.board[i]) continue;
+      // Pawns can't drop on first or last rank
+      if (type === 'p') {
+        const r = Math.floor(i / st.width);
+        if (r === 0 || r === st.height - 1) continue;
+      }
+      out.push({ from: -1, to: i, drop: type });
+    }
+  }
+  return out;
+}
+
 /* ── Apply a move (mutates state) ────────────────────────────── */
 function applyMoveTo(st, mv) {
+  // Power-up actions consume the player's turn, no chess move applied
+  if (mv.powerUp) {
+    const me = st.turn;
+    if (mv.powerUp === 'promote') {
+      const piece = st.board[mv.to];
+      if (piece) piece.type = mv.promo || 'q';
+    } else if (mv.powerUp === 'teleport') {
+      st.board[mv.to]   = st.board[mv.from];
+      st.board[mv.from] = null;
+    } else if (mv.powerUp === 'randomize') {
+      const piece = st.board[mv.to];
+      if (piece) piece.type = mv.newType || 'p';
+    }
+    if (st.powerUps && st.powerUps[me]) {
+      const idx = st.powerUps[me].indexOf(mv.powerUp);
+      if (idx >= 0) st.powerUps[me].splice(idx, 1);
+    }
+    st.enPassant = null;
+    st.halfmove++;
+    if (me === 'b') st.fullmove++;
+    st.turn = me === 'w' ? 'b' : 'w';
+    return;
+  }
+
+  // Crazyhouse drop: place a pocket piece on an empty square
+  if (mv.drop) {
+    const me = st.turn;
+    st.board[mv.to] = { type: mv.drop, color: me };
+    if (st.pockets && st.pockets[me]) {
+      const idx = st.pockets[me].indexOf(mv.drop);
+      if (idx >= 0) st.pockets[me].splice(idx, 1);
+    }
+    st.enPassant = null;
+    st.halfmove = 0;
+    if (me === 'b') st.fullmove++;
+    st.turn = me === 'w' ? 'b' : 'w';
+    return;
+  }
+
   const piece = st.board[mv.from];
   const me = piece.color;
   const W = st.width, H = st.height;
@@ -597,11 +812,43 @@ function allLegalMoves(st) {
     const p = st.board[i];
     if (p && p.color === st.turn) out.push(...legalMoves(st, i));
   }
+  // Crazyhouse: include drop moves that don't leave own king in check
+  if (st.pockets) {
+    const enemy = st.turn === 'w' ? 'b' : 'w';
+    for (const mv of dropMoves(st)) {
+      const test = cloneState(st);
+      applyMoveTo(test, mv);
+      const k = findKing(test, st.turn);
+      if (k >= 0 && !isAttacked(test, k, enemy)) out.push(mv);
+    }
+  }
   return out;
 }
 
 /* ── Status (with configurable rules) ────────────────────────── */
 function refreshStatus(st) {
+  // King of the Hill: previous mover wins by reaching a center square
+  if (st.gameMode === 'kingOfTheHill') {
+    const W = st.width, H = st.height;
+    const cf = [Math.floor((W - 1) / 2), Math.ceil((W - 1) / 2)];
+    const cr = [Math.floor((H - 1) / 2), Math.ceil((H - 1) / 2)];
+    const center = new Set();
+    for (const f of cf) for (const r of cr) center.add(r * W + f);
+    const prev = st.turn === 'w' ? 'b' : 'w';
+    const k = findKing(st, prev);
+    if (k >= 0 && center.has(k)) {
+      st.status = 'koth-win';
+      st.result = prev;
+      return;
+    }
+  }
+
+  // Three-Check: someone reached 3 checks delivered
+  if (st.gameMode === 'threeCheck' && st.checks) {
+    if ((st.checks.w || 0) >= 3) { st.status = 'three-check'; st.result = 'w'; return; }
+    if ((st.checks.b || 0) >= 3) { st.status = 'three-check'; st.result = 'b'; return; }
+  }
+
   const enemy = st.turn === 'w' ? 'b' : 'w';
   const inCheck = isAttacked(st, findKing(st, st.turn), enemy);
   const moves = allLegalMoves(st);
@@ -631,8 +878,221 @@ function refreshStatus(st) {
   st.result = null;
 }
 
+/* ── AI (single-player vs computer) ──────────────────────────── */
+function evaluatePosition(st) {
+  // Material score from the perspective of the side to move (centipawns-ish).
+  let score = 0;
+  const total = st.width * st.height;
+  for (let i = 0; i < total; i++) {
+    const p = st.board[i];
+    if (!p) continue;
+    const v = (VALUE[p.type] || 0) * 100;
+    score += (p.color === st.turn) ? v : -v;
+  }
+  // Crazyhouse: pocket pieces are valuable too (slightly discounted)
+  if (st.pockets) {
+    const enemy = st.turn === 'w' ? 'b' : 'w';
+    for (const t of st.pockets[st.turn]) score += (VALUE[t] || 0) * 80;
+    for (const t of st.pockets[enemy])   score -= (VALUE[t] || 0) * 80;
+  }
+  // King of the Hill: reward kings closer to the center (Chebyshev distance)
+  if (st.gameMode === 'kingOfTheHill') {
+    const W = st.width, H = st.height;
+    const cf = (W - 1) / 2, cr = (H - 1) / 2;
+    const maxD = Math.max(cf, cr);
+    const distFromCenter = (idx) => {
+      const f = idx % W, r = Math.floor(idx / W);
+      return Math.max(Math.abs(f - cf), Math.abs(r - cr));
+    };
+    const enemy = st.turn === 'w' ? 'b' : 'w';
+    const myK    = findKing(st, st.turn);
+    const oppK   = findKing(st, enemy);
+    if (myK  >= 0) score += Math.round((maxD - distFromCenter(myK))  * 80);
+    if (oppK >= 0) score -= Math.round((maxD - distFromCenter(oppK)) * 80);
+  }
+  return score;
+}
+
+function isOnHill(st, idx) {
+  const W = st.width, H = st.height;
+  const f = idx % W, r = Math.floor(idx / W);
+  const cfs = [Math.floor((W - 1) / 2), Math.ceil((W - 1) / 2)];
+  const crs = [Math.floor((H - 1) / 2), Math.ceil((H - 1) / 2)];
+  return cfs.includes(f) && crs.includes(r);
+}
+
+function negamax(st, depth, alpha, beta) {
+  // Mode-specific terminal positions reach here mid-search (no need for
+  // refreshStatus). Score from the side-to-move's perspective.
+  if (st.gameMode === 'kingOfTheHill') {
+    const prev = st.turn === 'w' ? 'b' : 'w';
+    const k = findKing(st, prev);
+    if (k >= 0 && isOnHill(st, k)) return -1000000 + (10 - depth);
+  }
+  if (st.gameMode === 'threeCheck' && st.checks) {
+    const wWon = (st.checks.w || 0) >= 3;
+    const bWon = (st.checks.b || 0) >= 3;
+    if (wWon || bWon) {
+      const winner = wWon ? 'w' : 'b';
+      return (st.turn === winner ? 1 : -1) * (1000000 - (10 - depth));
+    }
+  }
+
+  const moves = allLegalMoves(st);
+  if (moves.length === 0) {
+    const enemy = st.turn === 'w' ? 'b' : 'w';
+    const inCheck = isAttacked(st, findKing(st, st.turn), enemy);
+    if (inCheck) return -1000000 + (10 - depth);   // checkmate (prefer faster)
+    return 0;                                      // stalemate
+  }
+  if (depth <= 0) return evaluatePosition(st);
+
+  // Captures first → better alpha-beta pruning
+  moves.sort((a, b) => (b.capture ? 1 : 0) - (a.capture ? 1 : 0));
+
+  let best = -Infinity;
+  for (const mv of moves) {
+    const next = cloneState(st);
+    applyMoveTo(next, mv);
+    const score = -negamax(next, depth - 1, -beta, -alpha);
+    if (score > best) best = score;
+    if (best > alpha) alpha = best;
+    if (alpha >= beta) break;
+  }
+  return best;
+}
+
+function chooseAiMove(st, depth) {
+  const legal = allLegalMoves(st);
+  if (legal.length === 0) return null;
+  // Shuffle for variety on equal-scored moves
+  const moves = legal.slice();
+  for (let i = moves.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [moves[i], moves[j]] = [moves[j], moves[i]];
+  }
+  let bestMove  = moves[0];
+  let bestScore = -Infinity;
+  for (const mv of moves) {
+    const next = cloneState(st);
+    applyMoveTo(next, mv);
+    const score = -negamax(next, depth - 1, -1e9, 1e9);
+    if (score > bestScore) {
+      bestScore = score;
+      bestMove  = mv;
+    }
+  }
+  return bestMove;
+}
+
+function isAiTurn() {
+  if (mode !== 'single' || !state || isGameOver()) return false;
+  if (!currentConfig || currentConfig.opponent !== 'ai') return false;
+  return state.turn !== currentConfig.playerColor;
+}
+
+function maybeTriggerAi() {
+  if (!isAiTurn()) return;
+  if (aiTimer) clearTimeout(aiTimer);
+  // Brief delay so the human sees their move land before the AI replies.
+  aiTimer = setTimeout(() => {
+    aiTimer = null;
+    if (!isAiTurn()) return;
+    // Power-Ups: try to spend a token first
+    const puMv = chooseAiPowerUpMove();
+    if (puMv) { finalizeMove(puMv); return; }
+    const depth = currentConfig.aiDifficulty || 2;
+    const mv = chooseAiMove(state, depth);
+    if (mv) finalizeMove(mv);
+  }, 300);
+}
+
+// Picks a power-up move using simple heuristics. Returns null if the AI
+// should just play a regular chess move instead.
+function chooseAiPowerUpMove() {
+  if (!state || !state.powerUps) return null;
+  const me = state.turn;
+  const tokens = state.powerUps[me] || [];
+  if (!tokens.length) return null;
+  // Random skip so the AI sometimes saves tokens for later
+  if (Math.random() < 0.35) return null;
+
+  const W = state.width, H = state.height, total = W * H;
+  const enemy = me === 'w' ? 'b' : 'w';
+
+  // 1. Promote — best if AI has a pawn close to the back rank
+  if (tokens.includes('promote')) {
+    let bestPawn = -1, bestAdvance = -1;
+    for (let i = 0; i < total; i++) {
+      const p = state.board[i];
+      if (!p || p.color !== me || p.type !== 'p') continue;
+      const r = Math.floor(i / W);
+      const advance = me === 'w' ? (H - 1 - r) : r;   // higher = more advanced
+      if (advance > bestAdvance) { bestAdvance = advance; bestPawn = i; }
+    }
+    // Use it when the pawn is at least past its own half of the board
+    if (bestPawn >= 0 && bestAdvance >= Math.floor(H / 2) - 1) {
+      return { from: -1, to: bestPawn, powerUp: 'promote', promo: 'q' };
+    }
+  }
+
+  // 2. Randomize — gamble against the opponent's most valuable piece
+  if (tokens.includes('randomize')) {
+    let bestEnemy = -1, bestVal = 0;
+    for (let i = 0; i < total; i++) {
+      const p = state.board[i];
+      if (!p || p.color !== enemy || p.type === 'k') continue;
+      const v = VALUE[p.type] || 0;
+      if (v > bestVal) { bestVal = v; bestEnemy = i; }
+    }
+    if (bestEnemy >= 0 && bestVal >= 5) { // queen or rook only
+      const choices = ['q','r','b','n','p'];
+      const newType = choices[Math.floor(Math.random() * choices.length)];
+      return { from: -1, to: bestEnemy, powerUp: 'randomize', newType };
+    }
+  }
+
+  // 3. Teleport — rescue an own valuable piece that's currently attacked
+  if (tokens.includes('teleport')) {
+    let threatenedIdx = -1, threatenedVal = 0;
+    for (let i = 0; i < total; i++) {
+      const p = state.board[i];
+      if (!p || p.color !== me || p.type === 'k') continue;
+      if (!isAttacked(state, i, enemy)) continue;
+      const v = VALUE[p.type] || 0;
+      if (v > threatenedVal) { threatenedVal = v; threatenedIdx = i; }
+    }
+    if (threatenedIdx >= 0 && threatenedVal >= 3) {  // worth saving
+      const safe = [];
+      for (let i = 0; i < total; i++) {
+        if (state.board[i]) continue;
+        if (!isAttacked(state, i, enemy)) safe.push(i);
+      }
+      if (safe.length) {
+        const dst = safe[Math.floor(Math.random() * safe.length)];
+        return { from: threatenedIdx, to: dst, powerUp: 'teleport' };
+      }
+    }
+  }
+
+  return null;
+}
+
+function cancelAi() {
+  if (aiTimer) { clearTimeout(aiTimer); aiTimer = null; }
+}
+
 /* ── Standard Algebraic Notation ─────────────────────────────── */
 function moveToSAN(stBefore, mv) {
+  if (mv.powerUp) {
+    if (mv.powerUp === 'promote')   return `[↑${(mv.promo || 'q').toUpperCase()} ${squareName(stBefore, mv.to)}]`;
+    if (mv.powerUp === 'teleport')  return `[⇄ ${squareName(stBefore, mv.from)}→${squareName(stBefore, mv.to)}]`;
+    if (mv.powerUp === 'randomize') return `[? ${squareName(stBefore, mv.to)}=${(mv.newType || '?').toUpperCase()}]`;
+  }
+  if (mv.drop) {
+    const letter = mv.drop === 'p' ? 'P' : mv.drop.toUpperCase();
+    return appendCheckSuffix(stBefore, mv, letter + '@' + squareName(stBefore, mv.to));
+  }
   if (mv.castle) return appendCheckSuffix(stBefore, mv, mv.castle === 'k' ? 'O-O' : 'O-O-O');
 
   const piece = stBefore.board[mv.from];
@@ -698,16 +1158,27 @@ function renderPieceNode(piece) {
   return span;
 }
 
+// Default sound URLs used when a piece has no custom sound for that event.
+const DEFAULT_PIECE_SOUNDS = {
+  moveSound: 'https://cdn.freesound.org/previews/351/351518_4502687-hq.mp3',
+  killSound: 'https://cdn.freesound.org/previews/30/30248_56897-hq.mp3',
+  dieSound:  'https://cdn.freesound.org/previews/566/566453_5409451-hq.mp3',
+};
+
 function playPieceSound(type, kind) {
+  let url;
   const piece = state && state.custom && state.custom.pieces && state.custom.pieces[type];
-  if (!piece) return;
-  // Backward compat: old presets stored the kill sound as `sound`.
-  let url = piece[kind];
-  if (!url && kind === 'killSound') url = piece.sound;
+  if (piece) {
+    url = piece[kind];
+    // Backward compat: legacy presets stored the kill sound as `sound`.
+    if (!url && kind === 'killSound') url = piece.sound;
+  }
+  // Fall back to the default piece sound when no custom URL is set.
+  if (!url) url = DEFAULT_PIECE_SOUNDS[kind];
   if (!url) return;
   try {
     const audio = new Audio(url);
-    audio.volume = 0.85;
+    audio.volume = sfxVolumeNorm();
     audio.play().catch(() => {});
   } catch (e) {}
 }
@@ -718,7 +1189,9 @@ function isGameOver() {
     state.status === 'checkmate' ||
     state.status === 'stalemate' ||
     state.status === 'draw' ||
-    state.status === 'timeout'
+    state.status === 'timeout' ||
+    state.status === 'koth-win' ||
+    state.status === 'three-check'
   );
 }
 
@@ -735,18 +1208,35 @@ function renderBoard() {
   const inCheckIdx = (state.status === 'check' || state.status === 'checkmate')
     ? findKing(state, state.turn) : -1;
 
+  // Pre-compute the King-of-the-Hill center squares so we can highlight them
+  let hillSet = null;
+  if (state.gameMode === 'kingOfTheHill') {
+    hillSet = new Set();
+    const cf = [Math.floor((W - 1) / 2), Math.ceil((W - 1) / 2)];
+    const cr = [Math.floor((H - 1) / 2), Math.ceil((H - 1) / 2)];
+    for (const f of cf) for (const r of cr) hillSet.add(r * W + f);
+  }
+
   for (const idx of order) {
     const f = fileOf(state, idx), r = rankOf(state, idx);
     const isLight = (f + r) % 2 === 0;
     const sq = document.createElement('button');
     sq.type = 'button';
     sq.className = 'sq ' + (isLight ? 'sq--light' : 'sq--dark');
+    if (hillSet && hillSet.has(idx)) sq.classList.add('sq--hill');
     sq.dataset.i = idx;
     sq.setAttribute('aria-label', squareName(state, idx));
 
     if (lastMove && (lastMove.from === idx || lastMove.to === idx)) sq.classList.add('sq--last');
     if (selected === idx) sq.classList.add('sq--sel');
+    if (activePowerUp && activePowerUp.sourceIdx === idx) sq.classList.add('sq--sel');
     if (idx === inCheckIdx) sq.classList.add('sq--check');
+
+    // King fall on checkmate — animate within first 1.5s, lock pose afterwards
+    if (state.status === 'checkmate' && idx === inCheckIdx) {
+      const recent = endedAt && (Date.now() - endedAt) < 1500;
+      sq.classList.add(recent ? 'sq--king-fallen' : 'sq--king-fallen-done');
+    }
 
     const target = legalForSelected.find(m => m.to === idx);
     if (target) sq.classList.add(target.capture || target.enPassant ? 'sq--legal-cap' : 'sq--legal');
@@ -784,13 +1274,44 @@ function renderTags() {
   const live = !isGameOver();
   tagTop.classList.toggle('player-tag--turn',    live && state.turn === topColor);
   tagBottom.classList.toggle('player-tag--turn', live && state.turn === botColor);
+
+  // Profile badges. In single-player both seats are you; in online, the local
+  // player's seat shows your profile and the other shows the opponent's.
+  const topIsLocal = (mode === 'single') || (myColor === topColor);
+  const botIsLocal = (mode === 'single') || (myColor === botColor);
+  applyProfileToTag(profilePicTop, profileNameTop, topIsLocal ? profile : opponentProfile);
+  applyProfileToTag(profilePicBot, profileNameBot, botIsLocal ? profile : opponentProfile);
+}
+
+function applyProfileToTag(picEl, nameEl, prof) {
+  if (prof && prof.picUrl) {
+    picEl.src = prof.picUrl;
+    picEl.hidden = false;
+    picEl.onerror = () => { picEl.hidden = true; };
+  } else {
+    picEl.hidden = true;
+    picEl.removeAttribute('src');
+  }
+  if (prof && prof.name) {
+    nameEl.textContent = prof.name;
+    nameEl.hidden = false;
+  } else {
+    nameEl.textContent = '';
+    nameEl.hidden = true;
+  }
 }
 
 function renderCaptures() {
   const topColor = flipped ? 'w' : 'b';
   const botColor = flipped ? 'b' : 'w';
-  captureTop.innerHTML    = formatCaptures(state.captured[topColor]);
-  captureBottom.innerHTML = formatCaptures(state.captured[botColor]);
+  if (state.pockets) {
+    // Crazyhouse: each capture row shows that side's drop-able pocket pieces
+    captureTop.innerHTML    = formatPocket(state.pockets[topColor], topColor);
+    captureBottom.innerHTML = formatPocket(state.pockets[botColor], botColor);
+  } else {
+    captureTop.innerHTML    = formatCaptures(state.captured[topColor]);
+    captureBottom.innerHTML = formatCaptures(state.captured[botColor]);
+  }
 }
 
 function formatCaptures(list) {
@@ -798,6 +1319,51 @@ function formatCaptures(list) {
     .sort((a, b) => VALUE[b.type] - VALUE[a.type])
     .map(p => `<span class="cap cap--${p.color}">${PIECE_CHAR[p.type]}</span>`)
     .join('');
+}
+
+function formatPocket(pocket, color) {
+  if (!pocket || !pocket.length) return '';
+  const counts = {};
+  for (const t of pocket) counts[t] = (counts[t] || 0) + 1;
+  const types = Object.keys(counts).sort((a, b) => (VALUE[b] || 0) - (VALUE[a] || 0));
+  return types.map(t => {
+    const sup    = counts[t] > 1 ? `<sup>${counts[t]}</sup>` : '';
+    const isSel  = (selectedDrop === t && state.turn === color);
+    const cls    = `cap cap--${color} pocket-piece` + (isSel ? ' pocket-piece--selected' : '');
+    return `<span class="${cls}" data-drop-type="${t}" data-drop-color="${color}">${PIECE_CHAR[t]}${sup}</span>`;
+  }).join('');
+}
+
+function onPocketClick(e) {
+  const target = e.target.closest('.pocket-piece');
+  if (!target || !state || !state.pockets) return;
+  if (isGameOver() || pendingPromo) return;
+  const color = target.dataset.dropColor;
+  const type  = target.dataset.dropType;
+  if (color !== state.turn) return;  // can only drop own pieces
+  if (mode !== 'single' && state.turn !== myColor) return;
+  if (mode === 'single' && currentConfig && currentConfig.opponent === 'ai'
+      && state.turn !== currentConfig.playerColor) return;
+  selectPocketPiece(type);
+}
+
+function selectPocketPiece(type) {
+  if (selectedDrop === type) {
+    selectedDrop = null;
+    legalForSelected = [];
+  } else {
+    selectedDrop = type;
+    selected = null;
+    const candidates = dropMoves(state).filter(m => m.drop === type);
+    const enemy = state.turn === 'w' ? 'b' : 'w';
+    legalForSelected = candidates.filter(mv => {
+      const test = cloneState(state);
+      applyMoveTo(test, mv);
+      const k = findKing(test, state.turn);
+      return k >= 0 && !isAttacked(test, k, enemy);
+    });
+  }
+  render();
 }
 
 function renderClocks() {
@@ -840,9 +1406,18 @@ function renderStatus() {
   } else if (state.status === 'timeout') {
     text = `Time out — ${COLOR_NAME[state.result]} wins.`;
     kind = 'good';
+  } else if (state.status === 'koth-win') {
+    text = `${COLOR_NAME[state.result]} reached the center — wins!`;
+    kind = 'good';
+  } else if (state.status === 'three-check') {
+    text = `${COLOR_NAME[state.result]} delivered 3 checks — wins!`;
+    kind = 'good';
   } else if (state.status === 'check') {
     text = `${COLOR_NAME[state.turn]} to move — check!`;
     kind = 'bad';
+  } else if (isAiTurn()) {
+    text = 'AI is thinking…';
+    kind = 'neutral';
   } else {
     text = `${COLOR_NAME[state.turn]} to move.`;
     kind = 'neutral';
@@ -878,10 +1453,120 @@ function render() {
   renderBoard();
   renderTags();
   renderCaptures();
+  renderPowerUps();
   renderClocks();
   renderStatus();
   renderHistory();
   renderActionButton();
+}
+
+function renderPowerUps() {
+  if (!state.powerUps) {
+    powerupRowTop.hidden = true;
+    powerupRowBot.hidden = true;
+    return;
+  }
+  powerupRowTop.hidden = false;
+  powerupRowBot.hidden = false;
+  const topColor = flipped ? 'w' : 'b';
+  const botColor = flipped ? 'b' : 'w';
+  powerupRowTop.innerHTML = formatPowerUps(topColor);
+  powerupRowBot.innerHTML = formatPowerUps(botColor);
+}
+
+function isLocalSide(color) {
+  if (mode === 'single') {
+    if (currentConfig && currentConfig.opponent === 'ai') return color === currentConfig.playerColor;
+    return color === state.turn;
+  }
+  return color === myColor;
+}
+
+function formatPowerUps(color) {
+  const list = (state.powerUps && state.powerUps[color]) || [];
+  if (!list.length) return '';
+  const mine = isLocalSide(color) && state.turn === color && !isGameOver();
+  return list.map((type, i) => {
+    const sel = activePowerUp && activePowerUp.color === color && activePowerUp.idx === i;
+    let cls = `powerup powerup--${type}`;
+    if (mine) cls += ' powerup--mine';
+    if (sel)  cls += ' powerup--selected';
+    return `<button type="button" class="${cls}" data-pu-color="${color}" data-pu-idx="${i}" data-pu-type="${type}" title="${POWER_UP_NAMES[type]}">${POWER_UP_SYMBOLS[type]}</button>`;
+  }).join('');
+}
+
+function onPowerUpClick(e) {
+  const target = e.target.closest('.powerup');
+  if (!target || !state || !state.powerUps) return;
+  if (isGameOver() || pendingPromo) return;
+  const color = target.dataset.puColor;
+  const type  = target.dataset.puType;
+  const idx   = parseInt(target.dataset.puIdx, 10);
+  if (color !== state.turn) return;
+  if (!isLocalSide(color)) return;
+
+  // Toggle: clicking the active token cancels
+  if (activePowerUp && activePowerUp.color === color && activePowerUp.idx === idx) {
+    activePowerUp = null;
+    legalForSelected = [];
+  } else {
+    activePowerUp = { type, color, idx, step: 'select-source' };
+    selected = null;
+    selectedDrop = null;
+    legalForSelected = [];
+  }
+  render();
+}
+
+function handlePowerUpClick(idx) {
+  if (!activePowerUp) return false;
+  const piece = state.board[idx];
+
+  if (activePowerUp.type === 'promote') {
+    // Promote can only target your own pawns
+    if (!piece || piece.color !== state.turn || piece.type !== 'p') return true;
+    pendingPromo = ['q','r','b','n'].map(promo => ({
+      from: -1, to: idx, powerUp: 'promote', promo,
+    }));
+    promoModal.hidden = false;
+    return true;
+  }
+
+  if (activePowerUp.type === 'teleport') {
+    if (activePowerUp.step === 'select-source') {
+      if (!piece || piece.color !== state.turn) return true;
+      activePowerUp.sourceIdx = idx;
+      activePowerUp.step = 'select-target';
+      legalForSelected = [];
+      const total = state.width * state.height;
+      for (let i = 0; i < total; i++) {
+        if (!state.board[i]) {
+          legalForSelected.push({ from: idx, to: i, powerUp: 'teleport' });
+        }
+      }
+      render();
+      return true;
+    }
+    // step === 'select-target'
+    const mv = legalForSelected.find(m => m.to === idx);
+    if (mv) {
+      activePowerUp = null;
+      commitMove(mv);
+    }
+    return true;
+  }
+
+  if (activePowerUp.type === 'randomize') {
+    if (!piece || piece.type === 'k') return true;
+    const choices = ['q','r','b','n','p'];
+    const newType = choices[Math.floor(Math.random() * choices.length)];
+    const mv = { from: -1, to: idx, powerUp: 'randomize', newType };
+    activePowerUp = null;
+    commitMove(mv);
+    return true;
+  }
+
+  return false;
 }
 
 function renderActionButton() {
@@ -967,6 +1652,29 @@ function onSquareClick(idx) {
   if (isGameOver() || pendingPromo) return;
   // Online guest: only allow interaction on own turn
   if (mode !== 'single' && state.turn !== myColor) return;
+  // Single-vs-AI: only allow interaction on the human's turn
+  if (mode === 'single' && currentConfig && currentConfig.opponent === 'ai'
+      && state.turn !== currentConfig.playerColor) return;
+
+  // Power-Ups: route the click through the power-up handler
+  if (activePowerUp) {
+    handlePowerUpClick(idx);
+    return;
+  }
+
+  // Crazyhouse: handle drop completion
+  if (selectedDrop !== null) {
+    const mv = legalForSelected.find(m => m.to === idx && m.drop);
+    if (mv) {
+      selectedDrop = null;
+      commitMove(mv);
+      return;
+    }
+    // Click somewhere else: cancel drop and fall through
+    selectedDrop = null;
+    legalForSelected = [];
+    render();
+  }
 
   const piece = state.board[idx];
 
@@ -1040,13 +1748,36 @@ function finalizeMove(mv) {
   state.moves.push(moveToSAN(before, mv));
   lastMove = { from: mv.from, to: mv.to };
   selected = null;
+  selectedDrop = null;
+  activePowerUp = null;
   legalForSelected = [];
+
+  // Power-Ups: grant the mover at most ONE token per turn — capture wins,
+  // else the periodic grant (every 6 plies) fires.
+  if (state.gameMode === 'powerUps' && state.powerUps) {
+    if (mv.capture) {
+      state.powerUps[moverColor].push(randomPowerUpType());
+    } else if (state.moves.length > 0 && state.moves.length % 6 === 0) {
+      state.powerUps[moverColor].push(randomPowerUpType());
+    }
+  }
 
   let victimType = null;
   if (mv.capture) {
     const captures = state.captured[moverColor];
     const victim = captures[captures.length - 1];
     if (victim) victimType = victim.type;
+    state.lastCaptureBy = moverColor;
+    // Crazyhouse: captured piece joins the capturer's pocket as their colour
+    if (state.pockets) state.pockets[moverColor].push(victim.type);
+  }
+  // Three-Check: if this move delivers check, increment the mover's tally
+  if (state.gameMode === 'threeCheck' && state.checks) {
+    const opp = state.turn; // applyMoveTo flipped turn — `opp` is the side now to move
+    const enemyOfOpp = opp === 'w' ? 'b' : 'w';
+    if (isAttacked(state, findKing(state, opp), enemyOfOpp)) {
+      state.checks[enemyOfOpp]++;
+    }
   }
   playMoveSounds(mv, moverType, victimType);
 
@@ -1060,12 +1791,28 @@ function finalizeMove(mv) {
   // Any pending vote is no longer relevant — a move has happened
   resetVote();
 
+  // Music transitions
+  if (mv.capture && !isGameOver()) {
+    transitionToBattle();
+    refreshBattleMusic();   // swap to new capturer's URL if it changed
+  }
+  if (isGameOver()) transitionToMenu();
+
+  // Victory sound for the winner (heard on both sides via shared profile URL)
+  maybePlayVictory();
+
+  // Big end-of-game overlay
+  maybeShowEndBanner();
+
   // Online: host broadcasts the result so the guest stays in sync
   if (mode === 'host' && conn && conn.open) {
     try { conn.send({ type: 'state', state, mv, moverType, victimType }); } catch (e) {}
   }
 
   render();
+
+  // If it's now the AI's turn, queue its reply
+  maybeTriggerAi();
 }
 
 function playMoveSounds(mv, moverType, victimType) {
@@ -1101,7 +1848,15 @@ function resetVote() {
 
 function performUndo() {
   if (!undoStack.length) return;
+  cancelAi();
   state = undoStack.pop();
+  // In single-vs-AI: keep popping past the AI's reply so we land on the
+  // human's turn instead of immediately handing it back to the AI.
+  if (mode === 'single' && currentConfig && currentConfig.opponent === 'ai') {
+    if (state.turn !== currentConfig.playerColor && undoStack.length) {
+      state = undoStack.pop();
+    }
+  }
   selected = null;
   legalForSelected = [];
   lastMove = null;
@@ -1188,6 +1943,9 @@ btnMenu.addEventListener('click', () => {
     clockStartedAt = null;
     pendingPromo = null;
     promoModal.hidden = true;
+    cancelAi();
+    hideEndBanner();
+    transitionToMenu();
     showScreen('menu');
   } else {
     leaveOnline();
@@ -1202,8 +1960,9 @@ function leaveOnline() {
   clockStartedAt = null;
   pendingPromo = null;
   promoModal.hidden = true;
-  mode = 'single';
-  updateStartGameButton();
+  setMode('single');
+  hideEndBanner();
+  transitionToMenu();
   showScreen('title');
 }
 
@@ -1221,7 +1980,13 @@ function readConfigFromForm() {
     },
     size: parseInt(document.querySelector('input[name="boardSize"]:checked').value, 10),
     firstMove: document.querySelector('input[name="firstMove"]:checked').value,
+    gameMode: gameModeSelect.value || 'standard',
     useCustomPieces: useCustomPieces.checked,
+    hostColor:  hostColorSelect.value === 'b' ? 'b' : 'w',
+    shareMusic: shareMusicEl.checked,
+    opponent:    aiOpponentSelect.value === 'ai' ? 'ai' : 'self',
+    playerColor: aiPlayerColorSelect.value === 'b' ? 'b' : 'w',
+    aiDifficulty: Math.max(1, Math.min(3, parseInt(aiDifficultySelect.value) || 2)),
   };
 }
 
@@ -1236,8 +2001,41 @@ function writeConfigToForm(cfg) {
   if (sizeRadio) sizeRadio.checked = true;
   const firstRadio = document.querySelector(`input[name="firstMove"][value="${cfg.firstMove}"]`);
   if (firstRadio) firstRadio.checked = true;
+  hostColorSelect.value = cfg.hostColor === 'b' ? 'b' : 'w';
+  shareMusicEl.checked  = cfg.shareMusic !== false;
+  gameModeSelect.value  = cfg.gameMode || 'standard';
+  aiOpponentSelect.value    = cfg.opponent === 'ai' ? 'ai' : 'self';
+  aiPlayerColorSelect.value = cfg.playerColor === 'b' ? 'b' : 'w';
+  aiDifficultySelect.value  = String(cfg.aiDifficulty || 2);
   updateTimeFieldsVisibility();
+  updateAiOptionsVisibility();
+  updateBoardSizeAvailability();
 }
+
+function updateAiOptionsVisibility() {
+  const showAi = aiOpponentSelect.value === 'ai';
+  document.querySelectorAll('.ai-only').forEach(el => { el.hidden = !showAi; });
+}
+
+aiOpponentSelect.addEventListener('change', updateAiOptionsVisibility);
+
+function updateBoardSizeAvailability() {
+  const sixRadio   = document.querySelector('input[name="boardSize"][value="6"]');
+  const eightRadio = document.querySelector('input[name="boardSize"][value="8"]');
+  if (!sixRadio || !eightRadio) return;
+  // King of the Hill only makes sense on 8×8 (the 6×6 mini board has no
+  // bishops, so the central-square race is too constrained).
+  if (gameModeSelect.value === 'kingOfTheHill') {
+    if (sixRadio.checked) eightRadio.checked = true;
+    sixRadio.disabled = true;
+    sixRadio.parentElement.classList.add('radio--disabled');
+  } else {
+    sixRadio.disabled = false;
+    sixRadio.parentElement.classList.remove('radio--disabled');
+  }
+}
+
+gameModeSelect.addEventListener('change', updateBoardSizeAvailability);
 
 function updateTimeFieldsVisibility() {
   timeFields.hidden = (timeMode.value !== 'side');
@@ -1340,9 +2138,27 @@ function updateStartGameButton() {
   if (btnStartCustomGame) btnStartCustomGame.textContent = label;
 }
 
-btnSinglePlayer.addEventListener('click', () => {
-  mode = 'single';
+function updateHostOnlyVisibility() {
+  document.querySelectorAll('.host-only').forEach(el => {
+    el.hidden = (mode !== 'host');
+  });
+}
+
+function updateSingleOnlyVisibility() {
+  document.querySelectorAll('.single-only').forEach(el => {
+    el.hidden = (mode !== 'single');
+  });
+}
+
+function setMode(newMode) {
+  mode = newMode;
   updateStartGameButton();
+  updateHostOnlyVisibility();
+  updateSingleOnlyVisibility();
+}
+
+btnSinglePlayer.addEventListener('click', () => {
+  setMode('single');
   showScreen('menu');
 });
 
@@ -1357,10 +2173,10 @@ btnOnline.addEventListener('click', () => {
 
 btnBackToTitle.addEventListener('click', () => {
   if (mode === 'host') {
+    setMode('single');
     showScreen('online');
   } else {
-    mode = 'single';
-    updateStartGameButton();
+    setMode('single');
     showScreen('title');
   }
 });
@@ -1373,6 +2189,8 @@ function startGame(cfg, customCfg) {
   state = freshGame(cfg, customCfg);
   undoStack = [];
   selected = null;
+  selectedDrop = null;
+  activePowerUp = null;
   legalForSelected = [];
   lastMove = null;
   pendingPromo = null;
@@ -1388,22 +2206,28 @@ function startGame(cfg, customCfg) {
     stopClockTick();
   }
 
-  if (mode === 'host') flipped = false;
-  if (mode === 'guest') flipped = (myColor === 'b');
+  if (mode !== 'single') flipped = (myColor === 'b');
 
   resetVote();
+  lastResultPlayed = null;
+  hideEndBanner();
+  transitionToMenu();
+  cancelAi();
   showScreen('game');
   render();
+  // If the AI is configured to play first (e.g. AI is white), trigger it now
+  maybeTriggerAi();
 
   // Online host: bring the guest to the same starting state
   if (mode === 'host' && conn && conn.open) {
     try {
       conn.send({
         type: 'welcome',
-        yourColor: 'b',
+        yourColor: myColor === 'w' ? 'b' : 'w',
         matchCfg: cfg,
         customCfg: customCfg,
         state: state,
+        hostProfile: getMyShareableProfile(),
       });
     } catch (e) {}
   }
@@ -1422,113 +2246,103 @@ btnStartGame.addEventListener('click', () => {
 });
 
 /* ── Customize-pieces page ──────────────────────────────────── */
-function buildPieceCards() {
-  pieceList.innerHTML = '';
-  for (const t of PIECE_TYPES) {
-    const row = document.createElement('div');
-    row.className = 'piece-row';
-    const head = document.createElement('div');
-    head.className = 'piece-row__head';
-    head.innerHTML = `
-      <span class="piece-row__icon">${PIECE_CHAR[t]}</span>
-      <span class="piece-row__name">${PIECE_NAMES[t]}</span>
-    `;
-    row.appendChild(head);
+// In-memory copy of all six pieces' settings (only one shown at a time)
+let customDraft     = blankCustom();
+let currentPieceIdx = 0;
 
-    // Image fields (stacked)
-    const imgFields = [
-      { field: 'wImg', label: 'White image URL' },
-      { field: 'bImg', label: 'Black image URL' },
-    ];
-    for (const f of imgFields) {
-      const wrap = document.createElement('label');
-      wrap.className = 'field';
-      const lab = document.createElement('span');
-      lab.className = 'field__label';
-      lab.textContent = f.label;
-      const input = document.createElement('input');
-      input.type = 'url';
-      input.className = 'input';
-      input.placeholder = 'https://…';
-      input.dataset.piece = t;
-      input.dataset.field = f.field;
-      wrap.appendChild(lab);
-      wrap.appendChild(input);
-      row.appendChild(wrap);
-    }
+const pieceEditorIcon    = $('pieceEditorIcon');
+const pieceEditorName    = $('pieceEditorName');
+const pieceEditorCounter = $('pieceEditorCounter');
+const pieceFieldEls = {
+  wImg:      $('pieceWImg'),
+  bImg:      $('pieceBImg'),
+  moveSound: $('pieceMoveSound'),
+  killSound: $('pieceKillSound'),
+  dieSound:  $('pieceDieSound'),
+  movement:  $('pieceMovement'),
+  attack:    $('pieceAttack'),
+};
 
-    // Sounds (compact 3-row block)
-    const sounds = document.createElement('div');
-    sounds.className = 'sounds-block';
-    const soundsLab = document.createElement('span');
-    soundsLab.className = 'field__label';
-    soundsLab.textContent = 'Sounds';
-    sounds.appendChild(soundsLab);
-    const soundFields = [
-      { field: 'moveSound', tag: 'Move' },
-      { field: 'killSound', tag: 'Kill' },
-      { field: 'dieSound',  tag: 'Die'  },
-    ];
-    for (const sf of soundFields) {
-      const sr = document.createElement('div');
-      sr.className = 'sound-row';
-      const tag = document.createElement('span');
-      tag.className = 'sound-row__tag';
-      tag.textContent = sf.tag;
-      const inp = document.createElement('input');
-      inp.type = 'url';
-      inp.className = 'input input--sm';
-      inp.placeholder = 'https://…';
-      inp.dataset.piece = t;
-      inp.dataset.field = sf.field;
-      sr.appendChild(tag);
-      sr.appendChild(inp);
-      sounds.appendChild(sr);
-    }
-    row.appendChild(sounds);
-
-    const moveWrap = document.createElement('label');
-    moveWrap.className = 'field';
-    const moveLab = document.createElement('span');
-    moveLab.className = 'field__label';
-    moveLab.textContent = 'Movement';
-    const moveSelect = document.createElement('select');
-    moveSelect.className = 'select';
-    moveSelect.dataset.piece = t;
-    moveSelect.dataset.field = 'movement';
-    for (const o of MOVEMENT_OPTIONS) {
-      const opt = document.createElement('option');
-      opt.value = o.value;
-      opt.textContent = o.label;
-      moveSelect.appendChild(opt);
-    }
-    moveWrap.appendChild(moveLab);
-    moveWrap.appendChild(moveSelect);
-    row.appendChild(moveWrap);
-
-    pieceList.appendChild(row);
+function buildPieceEditor() {
+  // Populate the movement <select> with the standard pattern list
+  const moveSel = pieceFieldEls.movement;
+  moveSel.innerHTML = '';
+  for (const o of MOVEMENT_OPTIONS) {
+    const opt = document.createElement('option');
+    opt.value = o.value;
+    opt.textContent = (o.value === 'none') ? 'None — cannot move' : o.label;
+    moveSel.appendChild(opt);
   }
+  // Populate the attack <select> with the same options
+  const attackSel = pieceFieldEls.attack;
+  attackSel.innerHTML = '';
+  for (const o of MOVEMENT_OPTIONS) {
+    const opt = document.createElement('option');
+    opt.value = o.value;
+    if (o.value === 'default')   opt.textContent = 'Default (same as movement)';
+    else if (o.value === 'none') opt.textContent = 'None — cannot capture';
+    else                          opt.textContent = o.label;
+    attackSel.appendChild(opt);
+  }
+  $('pieceNavPrev').addEventListener('click', () => switchPiece(-1));
+  $('pieceNavNext').addEventListener('click', () => switchPiece( 1));
+}
+
+function switchPiece(delta) {
+  // Capture current edits before swapping
+  saveCurrentPieceFromEditor();
+  const n = PIECE_TYPES.length;
+  currentPieceIdx = (currentPieceIdx + delta + n) % n;
+  loadCurrentPieceIntoEditor();
+}
+
+function loadCurrentPieceIntoEditor() {
+  const t = PIECE_TYPES[currentPieceIdx];
+  const blank = blankCustom().pieces[t];
+  const p = (customDraft.pieces && customDraft.pieces[t]) || blank;
+  pieceEditorIcon.textContent    = PIECE_CHAR[t];
+  pieceEditorName.textContent    = PIECE_NAMES[t];
+  pieceEditorCounter.textContent = `${currentPieceIdx + 1} / ${PIECE_TYPES.length}`;
+  pieceFieldEls.wImg.value      = p.wImg || '';
+  pieceFieldEls.bImg.value      = p.bImg || '';
+  pieceFieldEls.moveSound.value = p.moveSound || '';
+  // Migrate legacy `sound` → killSound on display
+  pieceFieldEls.killSound.value = p.killSound || p.sound || '';
+  pieceFieldEls.dieSound.value  = p.dieSound  || '';
+  pieceFieldEls.movement.value  = p.movement  || 'default';
+  pieceFieldEls.attack.value    = p.attack    || 'default';
+}
+
+function saveCurrentPieceFromEditor() {
+  const t = PIECE_TYPES[currentPieceIdx];
+  if (!customDraft.pieces) customDraft.pieces = {};
+  if (!customDraft.pieces[t]) customDraft.pieces[t] = blankCustom().pieces[t];
+  const p = customDraft.pieces[t];
+  p.wImg      = (pieceFieldEls.wImg.value      || '').trim();
+  p.bImg      = (pieceFieldEls.bImg.value      || '').trim();
+  p.moveSound = (pieceFieldEls.moveSound.value || '').trim();
+  p.killSound = (pieceFieldEls.killSound.value || '').trim();
+  p.dieSound  = (pieceFieldEls.dieSound.value  || '').trim();
+  p.movement  = pieceFieldEls.movement.value || 'default';
+  p.attack    = pieceFieldEls.attack.value   || 'default';
+  delete p.sound;
 }
 
 function readCustomFromForm() {
-  const out = blankCustom();
-  pieceList.querySelectorAll('input[data-piece], select[data-piece]').forEach(el => {
-    const t = el.dataset.piece, f = el.dataset.field;
-    if (out.pieces[t]) out.pieces[t][f] = el.value || '';
-  });
-  return out;
+  saveCurrentPieceFromEditor();
+  return JSON.parse(JSON.stringify(customDraft));
 }
 
 function writeCustomToForm(custom) {
-  const cust = (custom && custom.pieces) ? custom : blankCustom();
-  pieceList.querySelectorAll('input[data-piece], select[data-piece]').forEach(el => {
-    const t = el.dataset.piece, f = el.dataset.field;
-    const piece = cust.pieces[t] || {};
-    let val = piece[f];
-    // Migrate old presets that stored a single `sound` field
-    if (f === 'killSound' && (val == null || val === '') && piece.sound) val = piece.sound;
-    el.value = val != null ? val : (f === 'movement' ? 'default' : '');
-  });
+  const cust = (custom && custom.pieces) ? JSON.parse(JSON.stringify(custom)) : blankCustom();
+  // Migrate legacy `sound` field on every piece
+  for (const t of PIECE_TYPES) {
+    const p = cust.pieces[t];
+    if (p && p.sound && !p.killSound) p.killSound = p.sound;
+  }
+  customDraft = cust;
+  currentPieceIdx = 0;
+  loadCurrentPieceIntoEditor();
 }
 
 function loadCustomPresets() {
@@ -1669,6 +2483,7 @@ function teardownConnection() {
   if (conn) { try { conn.close(); } catch (_) {} conn = null; }
   if (peer) { try { peer.destroy(); } catch (_) {} peer = null; }
   myColor = null;
+  opponentProfile = null;
 }
 
 function createLobby(matchCfg, customCfg) {
@@ -1695,7 +2510,7 @@ function createLobby(matchCfg, customCfg) {
 
     incoming.on('open', () => {
       conn = incoming;
-      myColor = 'w';
+      myColor = (matchCfg.hostColor === 'b') ? 'b' : 'w';
       // startGame will broadcast 'welcome' since mode === 'host' and conn is set
       startGame(matchCfg, customCfg);
     });
@@ -1730,6 +2545,11 @@ function onConnClosed() {
     gameStatus.textContent = 'Opponent disconnected.';
     gameStatus.className = 'status status--warn';
     stopClockTick();
+    transitionToMenu();
+    if (!bannerShownForEnd) {
+      endedAt = Date.now();
+      showEndBanner('⚠', 'Opponent Left', 'Connection lost');
+    }
   } else if (mode === 'guest') {
     setOnlineStatus(joinStatus, 'Connection closed.', 'bad');
     btnJoinConnect.disabled = false;
@@ -1753,6 +2573,12 @@ function handleHostMessage(msg) {
     finalizeMove(found);
   } else if (msg.type === 'vote') {
     receiveVote(msg.kind, msg.vote);
+  } else if (msg.type === 'profile') {
+    if (msg.profile) {
+      opponentProfile = msg.profile;
+      applyMusicProfile();
+      if (state) render();
+    }
   }
 }
 
@@ -1770,8 +2596,16 @@ function handleGuestMessage(msg) {
     currentConfig = msg.matchCfg;
     currentCustom = msg.customCfg;
     state = msg.state;
+    if (msg.hostProfile) opponentProfile = msg.hostProfile;
+    // Send our own profile back so the host can render it
+    if (conn && conn.open) {
+      try { conn.send({ type: 'profile', profile: getMyShareableProfile() }); } catch (e) {}
+    }
+    applyMusicProfile();
     undoStack = [];
     selected = null;
+    selectedDrop = null;
+    activePowerUp = null;
     legalForSelected = [];
     lastMove = null;
     pendingPromo = null;
@@ -1785,6 +2619,9 @@ function handleGuestMessage(msg) {
       stopClockTick();
     }
     resetVote();
+    lastResultPlayed = null;
+    hideEndBanner();
+    transitionToMenu();
     showScreen('game');
     render();
     return;
@@ -1795,6 +2632,8 @@ function handleGuestMessage(msg) {
     if (msg.mv && msg.mv.from != null) lastMove = { from: msg.mv.from, to: msg.mv.to };
     else lastMove = null;
     selected = null;
+    selectedDrop = null;
+    activePowerUp = null;
     legalForSelected = [];
     pendingPromo = null;
     promoModal.hidden = true;
@@ -1806,6 +2645,13 @@ function handleGuestMessage(msg) {
       stopClockTick();
     }
     resetVote();
+    if (msg.mv && msg.mv.capture && !isGameOver()) {
+      transitionToBattle();
+      refreshBattleMusic();
+    }
+    if (isGameOver()) transitionToMenu();
+    maybePlayVictory();
+    maybeShowEndBanner();
     render();
     return;
   }
@@ -1813,13 +2659,20 @@ function handleGuestMessage(msg) {
     receiveVote(msg.kind, msg.vote);
     return;
   }
+  if (msg.type === 'profile') {
+    if (msg.profile) {
+      opponentProfile = msg.profile;
+      applyMusicProfile();
+      if (state) render();
+    }
+    return;
+  }
 }
 
 /* ── Online navigation ─────────────────────────────────────── */
 btnOnlineBack.addEventListener('click', () => {
   teardownConnection();
-  mode = 'single';
-  updateStartGameButton();
+  setMode('single');
   showScreen('title');
 });
 
@@ -1828,8 +2681,7 @@ btnHostLobby.addEventListener('click', () => {
     setOnlineStatus(onlineStatus, 'PeerJS failed to load — reload the page.', 'bad');
     return;
   }
-  mode = 'host';
-  updateStartGameButton();
+  setMode('host');
   showScreen('menu');
 });
 
@@ -1838,7 +2690,7 @@ btnJoinLobby.addEventListener('click', () => {
     setOnlineStatus(onlineStatus, 'PeerJS failed to load — reload the page.', 'bad');
     return;
   }
-  mode = 'guest';
+  setMode('guest');
   joinCodeEl.value = '';
   setOnlineStatus(joinStatus, '', 'neutral');
   btnJoinConnect.disabled = false;
@@ -1847,14 +2699,13 @@ btnJoinLobby.addEventListener('click', () => {
 
 btnHostCancel.addEventListener('click', () => {
   teardownConnection();
-  mode = 'single';
-  updateStartGameButton();
+  setMode('single');
   showScreen('online');
 });
 
 btnJoinBack.addEventListener('click', () => {
   teardownConnection();
-  mode = 'single';
+  setMode('single');
   showScreen('online');
 });
 
@@ -1871,9 +2722,539 @@ joinCodeEl.addEventListener('input', () => {
   joinCodeEl.value = joinCodeEl.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
 });
 
+/* ── Profile ─────────────────────────────────────────────────── */
+function loadProfile() {
+  try {
+    const raw = localStorage.getItem(PROFILE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      // Migrate legacy single `volume` → split SFX + music
+      if (parsed.volume != null) {
+        if (parsed.sfxVolume   == null) parsed.sfxVolume   = parsed.volume;
+        if (parsed.musicVolume == null) parsed.musicVolume = parsed.volume;
+        delete parsed.volume;
+      }
+      return { ...DEFAULT_PROFILE, ...parsed };
+    }
+  } catch (e) {}
+  return { ...DEFAULT_PROFILE };
+}
+
+function persistProfile() {
+  try { localStorage.setItem(PROFILE_KEY, JSON.stringify(profile)); } catch (e) {}
+}
+
+function getMyShareableProfile() {
+  return {
+    name:        profile.name || 'Player',
+    picUrl:      profile.picUrl || '',
+    victoryUrl:  profile.victoryUrl || '',
+    menuMusic:   profile.menuMusic || '',
+    battleMusic: profile.battleMusic || '',
+  };
+}
+
+function applyProfileBackground() {
+  document.body.style.background = '';
+  if (profile.bgMode === 'color' && profile.bgColor) {
+    document.body.style.background = profile.bgColor;
+  } else if (profile.bgMode === 'image' && profile.bgImage) {
+    const safe = profile.bgImage.replace(/"/g, '%22');
+    document.body.style.background =
+      `url("${safe}") center/cover fixed no-repeat, var(--color-bg)`;
+  }
+}
+
+function readProfileFromForm() {
+  return {
+    name:        (profileName.value || '').trim() || 'Player',
+    picUrl:      (profilePicUrl.value || '').trim(),
+    sfxVolume:   Math.max(0, Math.min(100, parseInt(profileSfxVolume.value)   || 0)),
+    musicVolume: Math.max(0, Math.min(100, parseInt(profileMusicVolume.value) || 0)),
+    bgMode:      document.querySelector('input[name="bgMode"]:checked').value,
+    bgColor:     profileBgColor.value,
+    bgImage:     (profileBgImage.value || '').trim(),
+    menuMusic:   (profileMenuMusic.value || '').trim(),
+    battleMusic: (profileBattleMusic.value || '').trim(),
+    victoryUrl:  (profileVictory.value || '').trim(),
+  };
+}
+
+function writeProfileToForm(p) {
+  profileName.value        = p.name || '';
+  profilePicUrl.value      = p.picUrl || '';
+  profileSfxVolume.value   = (p.sfxVolume   != null) ? p.sfxVolume
+                             : (p.volume != null ? p.volume : 85);
+  profileMusicVolume.value = (p.musicVolume != null) ? p.musicVolume
+                             : (p.volume != null ? p.volume : 60);
+  sfxVolumeDisplay.textContent   = profileSfxVolume.value + '%';
+  musicVolumeDisplay.textContent = profileMusicVolume.value + '%';
+  const radio = document.querySelector(`input[name="bgMode"][value="${p.bgMode || 'default'}"]`);
+  if (radio) radio.checked = true;
+  profileBgColor.value     = p.bgColor || '#1c130b';
+  profileBgImage.value     = p.bgImage || '';
+  profileMenuMusic.value   = p.menuMusic || '';
+  profileBattleMusic.value = p.battleMusic || '';
+  profileVictory.value     = p.victoryUrl || '';
+  updateBgVisibility();
+  updatePicPreview();
+}
+
+function updatePicPreview() {
+  const url = (profilePicUrl.value || '').trim();
+  if (!url) {
+    profilePicPreview.hidden = true;
+    profilePicPreview.removeAttribute('src');
+    return;
+  }
+  profilePicPreview.onerror = () => { profilePicPreview.hidden = true; };
+  profilePicPreview.onload  = () => { profilePicPreview.hidden = false; };
+  profilePicPreview.src = url;
+}
+
+function updateBgVisibility() {
+  const m = document.querySelector('input[name="bgMode"]:checked').value;
+  bgColorWrap.hidden    = (m !== 'color');
+  profileBgImage.hidden = (m !== 'image');
+}
+
+profileSfxVolume.addEventListener('input', () => {
+  sfxVolumeDisplay.textContent = profileSfxVolume.value + '%';
+});
+profileMusicVolume.addEventListener('input', () => {
+  musicVolumeDisplay.textContent = profileMusicVolume.value + '%';
+});
+
+profilePicUrl.addEventListener('input', updatePicPreview);
+
+document.querySelectorAll('input[name="bgMode"]').forEach(el =>
+  el.addEventListener('change', updateBgVisibility)
+);
+
+btnProfile.addEventListener('click', () => {
+  writeProfileToForm(profile);
+  showScreen('profile');
+});
+
+btnProfileBack.addEventListener('click', () => showScreen('title'));
+
+btnSaveProfile.addEventListener('click', () => {
+  profile = readProfileFromForm();
+  persistProfile();
+  applyProfileBackground();
+  applyMusicProfile();
+  applyMusicVolume();
+  // Push name + pic + victory URL to the opponent if a connection is live
+  if (mode !== 'single' && conn && conn.open) {
+    try { conn.send({ type: 'profile', profile: getMyShareableProfile() }); } catch (e) {}
+  }
+  if (state) render();
+  showScreen('title');
+});
+
+btnDefaultProfile.addEventListener('click', () => {
+  writeProfileToForm(DEFAULT_PROFILE);
+});
+
+/* ── End-of-game banner ─────────────────────────────────────── */
+function showEndBanner(icon, title, subtitle) {
+  gameBannerIcon.textContent     = icon;
+  gameBannerTitle.textContent    = title;
+  gameBannerSubtitle.textContent = subtitle;
+  gameBanner.hidden = false;
+  // Replay banner entry animation by re-triggering reflow
+  gameBanner.style.animation = 'none';
+  void gameBanner.offsetWidth;
+  gameBanner.style.animation = '';
+  // Shake the framed board once
+  const bw = document.querySelector('.board-wrap');
+  if (bw) {
+    bw.classList.remove('board-wrap--ended');
+    void bw.offsetWidth;
+    bw.classList.add('board-wrap--ended');
+  }
+  bannerShownForEnd = true;
+}
+
+function hideEndBanner() {
+  gameBanner.hidden = true;
+  bannerShownForEnd = false;
+  endedAt = null;
+  const bw = document.querySelector('.board-wrap');
+  if (bw) bw.classList.remove('board-wrap--ended');
+}
+
+function maybeShowEndBanner() {
+  if (!state || bannerShownForEnd) return;
+  if (!isGameOver()) return;
+  endedAt = Date.now();
+  let icon = '♙', title = 'Game Over', subtitle = '';
+  if (state.status === 'checkmate') {
+    title    = 'Checkmate';
+    subtitle = `${COLOR_NAME[state.result]} wins`;
+    icon     = state.result === 'w' ? '♔' : '♚'; // ♔ / ♚
+  } else if (state.status === 'stalemate') {
+    if (state.result === 'draw') {
+      title = 'Stalemate'; subtitle = 'Draw'; icon = '½';
+    } else {
+      title    = 'Stalemate';
+      subtitle = `${COLOR_NAME[state.result]} wins`;
+      icon     = state.result === 'w' ? '♔' : '♚';
+    }
+  } else if (state.status === 'draw') {
+    title = 'Draw'; subtitle = '50-move rule'; icon = '½';
+  } else if (state.status === 'timeout') {
+    title    = 'Time Out';
+    subtitle = `${COLOR_NAME[state.result]} wins`;
+    icon     = '⧖'; // hourglass-ish
+  } else if (state.status === 'koth-win') {
+    title    = 'King of the Hill';
+    subtitle = `${COLOR_NAME[state.result]} reached the center`;
+    icon     = state.result === 'w' ? '♔' : '♚';
+  } else if (state.status === 'three-check') {
+    title    = 'Three Checks';
+    subtitle = `${COLOR_NAME[state.result]} delivered 3 checks`;
+    icon     = '✕';
+  }
+  showEndBanner(icon, title, subtitle);
+}
+
+gameBannerClose.addEventListener('click', () => {
+  // Just hide; keep bannerShownForEnd so a re-render won't bring it back
+  gameBanner.hidden = true;
+});
+
+/* ── Music & victory sound ───────────────────────────────────── */
+let YT_READY = false;
+let ytReadyCallbacks = [];
+function loadYouTubeApi() {
+  if (window.YT && window.YT.Player) { YT_READY = true; return; }
+  window.onYouTubeIframeAPIReady = () => {
+    YT_READY = true;
+    ytReadyCallbacks.forEach(cb => cb());
+    ytReadyCallbacks = [];
+  };
+  const tag = document.createElement('script');
+  tag.src = 'https://www.youtube.com/iframe_api';
+  document.head.appendChild(tag);
+}
+function whenYTReady(cb) { if (YT_READY) cb(); else ytReadyCallbacks.push(cb); }
+
+function isYouTubeUrl(url) { return /(?:youtube\.com|youtu\.be)/i.test(url); }
+function extractYouTubeId(url) {
+  const m1 = url.match(/youtu\.be\/([A-Za-z0-9_-]{11})/);
+  if (m1) return m1[1];
+  const m2 = url.match(/[?&]v=([A-Za-z0-9_-]{11})/);
+  if (m2) return m2[1];
+  const m3 = url.match(/embed\/([A-Za-z0-9_-]{11})/);
+  if (m3) return m3[1];
+  return null;
+}
+
+function createMusicPlayer(containerId) {
+  return {
+    containerId,
+    audio: null,
+    yt: null,
+    url: '',
+    currentVolume: 0,
+    isPlaying: false,
+    fadeRAF: null,
+
+    setUrl(url) {
+      url = (url || '').trim();
+      if (url === this.url) return;
+      this.destroy();
+      this.url = url;
+      if (!url) return;
+      if (isYouTubeUrl(url)) this._initYT(url);
+      else this._initAudio(url);
+    },
+
+    _initAudio(url) {
+      this.audio = new Audio(url);
+      this.audio.loop = true;
+      this.audio.volume = this.currentVolume;
+    },
+
+    _initYT(url) {
+      const id = extractYouTubeId(url);
+      if (!id) return;
+      this._ensureContainer();
+      whenYTReady(() => {
+        if (this.url !== url) return;
+        try {
+          this.yt = new YT.Player(this.containerId, {
+            height: '0', width: '0', videoId: id,
+            playerVars: {
+              autoplay: 0, controls: 0, loop: 1, playlist: id,
+              modestbranding: 1, fs: 0, iv_load_policy: 3,
+              disablekb: 1, rel: 0,
+            },
+            events: {
+              onReady: () => {
+                if (!this.yt) return;
+                this.yt.setVolume(Math.round(this.currentVolume * 100));
+                if (this.isPlaying) this.yt.playVideo();
+              },
+              onStateChange: (e) => {
+                if (e.data === YT.PlayerState.ENDED) e.target.playVideo();
+              },
+            },
+          });
+        } catch (e) {}
+      });
+    },
+
+    _ensureContainer() {
+      let el = document.getElementById(this.containerId);
+      if (el) return el;
+      const host = document.querySelector('.music-host');
+      if (!host) return null;
+      el = document.createElement('div');
+      el.id = this.containerId;
+      host.appendChild(el);
+      return el;
+    },
+
+    play() {
+      this.isPlaying = true;
+      if (this.audio) this.audio.play().catch(() => {});
+      if (this.yt && this.yt.playVideo) { try { this.yt.playVideo(); } catch (e) {} }
+    },
+
+    pause() {
+      this.isPlaying = false;
+      if (this.audio) this.audio.pause();
+      if (this.yt && this.yt.pauseVideo) { try { this.yt.pauseVideo(); } catch (e) {} }
+    },
+
+    setVolume(v) {
+      this.currentVolume = Math.max(0, Math.min(1, v));
+      if (this.audio) this.audio.volume = this.currentVolume;
+      if (this.yt && this.yt.setVolume) {
+        try { this.yt.setVolume(Math.round(this.currentVolume * 100)); } catch (e) {}
+      }
+    },
+
+    fadeTo(target, duration, onDone) {
+      if (this.fadeRAF) cancelAnimationFrame(this.fadeRAF);
+      const from = this.currentVolume;
+      const start = performance.now();
+      const tick = (now) => {
+        const t = Math.min(1, (now - start) / duration);
+        this.setVolume(from + (target - from) * t);
+        if (t < 1) this.fadeRAF = requestAnimationFrame(tick);
+        else { this.fadeRAF = null; if (onDone) onDone(); }
+      };
+      this.fadeRAF = requestAnimationFrame(tick);
+    },
+
+    destroy() {
+      if (this.fadeRAF) cancelAnimationFrame(this.fadeRAF);
+      this.fadeRAF = null;
+      this.isPlaying = false;
+      if (this.audio) {
+        this.audio.pause();
+        this.audio.src = '';
+        this.audio = null;
+      }
+      if (this.yt) {
+        try { this.yt.destroy(); } catch (e) {}
+        this.yt = null;
+        this._ensureContainer();
+      }
+      this.url = '';
+      this.currentVolume = 0;
+    },
+  };
+}
+
+const menuMusic   = createMusicPlayer('menuMusicPlayer');
+const battleMusic = createMusicPlayer('battleMusicPlayer');
+
+let musicState       = 'menu';   // 'menu' | 'battle'
+let musicInitialized = false;
+const FADE_MS        = 6000;
+
+function sfxVolumeNorm() {
+  const v = (profile.sfxVolume != null) ? profile.sfxVolume
+            : (profile.volume != null ? profile.volume : 85);
+  return Math.max(0, Math.min(1, v / 100));
+}
+
+function musicVolumeNorm() {
+  const v = (profile.musicVolume != null) ? profile.musicVolume
+            : (profile.volume != null ? profile.volume : 60);
+  return Math.max(0, Math.min(1, v / 100));
+}
+
+function shareMusicEnabled() {
+  return mode !== 'single' && currentConfig && currentConfig.shareMusic !== false;
+}
+
+// Menu URL: own first, fall back to opponent's when sharing is enabled.
+function getCurrentMenuUrl() {
+  if (mode === 'single' || !shareMusicEnabled()) return profile.menuMusic;
+  return profile.menuMusic || (opponentProfile && opponentProfile.menuMusic) || '';
+}
+
+// Returns the color that currently has the material lead, or null when tied.
+// "Material" = sum of standard piece values (P=1, N=3, B=3, R=5, Q=9) of the
+// pieces each side has captured.
+function leadingColor() {
+  if (!state || !state.captured) return null;
+  const score = (list) => (list || []).reduce((s, p) => s + (VALUE[p.type] || 0), 0);
+  const w = score(state.captured.w);
+  const b = score(state.captured.b);
+  if (w === b) return null;
+  return w > b ? 'w' : 'b';
+}
+
+// Battle URL: when sharing is on, whoever currently has the material lead has
+// THEIR battle theme play for both sides. On a tie we keep whatever's already
+// playing rather than switching back and forth.
+function getCurrentBattleUrl() {
+  if (mode === 'single' || !shareMusicEnabled()) return profile.battleMusic;
+  const lead = leadingColor();
+  if (!lead) {
+    return battleMusic.url
+        || profile.battleMusic
+        || (opponentProfile && opponentProfile.battleMusic)
+        || '';
+  }
+  if (lead === myColor) {
+    return profile.battleMusic
+        || (opponentProfile && opponentProfile.battleMusic)
+        || '';
+  }
+  return (opponentProfile && opponentProfile.battleMusic)
+      || profile.battleMusic
+      || '';
+}
+
+function startMenuMusicIfNeeded() {
+  if (!musicInitialized) {
+    musicInitialized = true;
+    menuMusic.setUrl(getCurrentMenuUrl());
+    battleMusic.setUrl(getCurrentBattleUrl());
+  }
+  if (!menuMusic.url) return;
+  menuMusic.play();
+  menuMusic.fadeTo(musicVolumeNorm(), FADE_MS);
+}
+
+function transitionToBattle() {
+  if (musicState === 'battle') return;
+  musicState = 'battle';
+  menuMusic.fadeTo(0, FADE_MS, () => menuMusic.pause());
+  const url = getCurrentBattleUrl();
+  if (url !== battleMusic.url) battleMusic.setUrl(url);
+  if (battleMusic.url) {
+    battleMusic.play();
+    battleMusic.fadeTo(musicVolumeNorm(), FADE_MS);
+  }
+}
+
+function transitionToMenu() {
+  if (musicState === 'menu') return;
+  musicState = 'menu';
+  battleMusic.fadeTo(0, FADE_MS, () => battleMusic.pause());
+  const url = getCurrentMenuUrl();
+  if (url !== menuMusic.url) menuMusic.setUrl(url);
+  if (menuMusic.url) {
+    menuMusic.play();
+    menuMusic.fadeTo(musicVolumeNorm(), FADE_MS);
+  }
+}
+
+// Called after each capture to swap battle music to the new capturer's URL.
+function refreshBattleMusic() {
+  if (musicState !== 'battle') return;
+  const url = getCurrentBattleUrl();
+  if (url === battleMusic.url) return;
+  battleMusic.fadeTo(0, FADE_MS / 2, () => {
+    battleMusic.setUrl(url);
+    if (battleMusic.url) {
+      battleMusic.play();
+      battleMusic.fadeTo(musicVolumeNorm(), FADE_MS / 2);
+    }
+  });
+}
+
+function applyMusicProfile() {
+  // Re-evaluate URLs in case the profile or sharing config changed
+  if (musicState === 'menu') {
+    const url = getCurrentMenuUrl();
+    if (url !== menuMusic.url) menuMusic.setUrl(url);
+    if (musicInitialized && menuMusic.url) {
+      menuMusic.setVolume(musicVolumeNorm());
+      menuMusic.play();
+    }
+  } else if (musicState === 'battle') {
+    const url = getCurrentBattleUrl();
+    if (url !== battleMusic.url) battleMusic.setUrl(url);
+    if (musicInitialized && battleMusic.url) {
+      battleMusic.setVolume(musicVolumeNorm());
+      battleMusic.play();
+    }
+  }
+}
+
+function applyMusicVolume() {
+  const v = musicVolumeNorm();
+  if (musicState === 'menu')   menuMusic.setVolume(v);
+  if (musicState === 'battle') battleMusic.setVolume(v);
+}
+
+// Trigger music start on the very first click (browsers require user gesture)
+document.addEventListener('click', () => {
+  startMenuMusicIfNeeded();
+}, { once: true });
+
+/* ── Victory sound (synced via shared profile) ──────────────── */
+let lastResultPlayed = null;
+
+function playVictorySound(url) {
+  if (!url) return;
+  try {
+    const a = new Audio(url);
+    a.volume = sfxVolumeNorm();
+    a.play().catch(() => {});
+  } catch (e) {}
+}
+
+function maybePlayVictory() {
+  if (!state) { lastResultPlayed = null; return; }
+  if (state.result === lastResultPlayed) return;
+  lastResultPlayed = state.result;
+  if (!state.result || state.result === 'draw') return;
+  // Pick whose victory sound to play (the WINNER's). Both sides use the same
+  // URL via the shared profile, so the loser hears the winner's sound too.
+  let url;
+  if (mode === 'single') {
+    url = profile.victoryUrl;
+  } else if (state.result === myColor) {
+    url = profile.victoryUrl;
+  } else {
+    url = opponentProfile && opponentProfile.victoryUrl;
+  }
+  playVictorySound(url);
+}
+
 /* ── Boot ────────────────────────────────────────────────────── */
+captureTop.addEventListener('click', onPocketClick);
+captureBottom.addEventListener('click', onPocketClick);
+powerupRowTop.addEventListener('click', onPowerUpClick);
+powerupRowBot.addEventListener('click', onPowerUpClick);
+
 window.addEventListener('DOMContentLoaded', () => {
-  buildPieceCards();
+  profile = loadProfile();
+  applyProfileBackground();
+  writeProfileToForm(profile);
+  loadYouTubeApi();
+
+  buildPieceEditor();
   refreshPresetSelect();
   refreshCustomPresetSelect();
   try {
@@ -1882,6 +3263,6 @@ window.addEventListener('DOMContentLoaded', () => {
   } catch (e) {
     writeConfigToForm(DEFAULT_CONFIG);
   }
-  updateStartGameButton();
+  setMode('single');
   showScreen('title');
 });
