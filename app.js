@@ -1,5 +1,5 @@
 /* ============================================================
-   Chess — Pass-and-Play PWA Prototype  v0.4.0
+   Chess — Pass-and-Play PWA Prototype  v0.4.1
    ============================================================
    Single-player local game where one human plays both sides.
    Adds: main menu, configurable rules, time control, board size,
@@ -837,6 +837,19 @@ function allLegalMoves(st) {
 
 /* ── Status (with configurable rules) ────────────────────────── */
 function refreshStatus(st) {
+  // Defensive: if a king is missing (e.g. captured after an illegal power-up
+  // sequence), the side that still has a king wins. Prevents the "stalemate
+  // because the kingless side has zero legal moves" bug.
+  const wK = findKing(st, 'w');
+  const bK = findKing(st, 'b');
+  if (wK < 0 || bK < 0) {
+    st.status = 'checkmate';
+    if (wK < 0 && bK < 0)      st.result = 'draw';
+    else if (wK < 0)           st.result = 'b';
+    else                        st.result = 'w';
+    return;
+  }
+
   // King of the Hill: previous mover wins by reaching a center square
   if (st.gameMode === 'kingOfTheHill') {
     const W = st.width, H = st.height;
@@ -1008,13 +1021,25 @@ function maybeTriggerAi() {
   aiTimer = setTimeout(() => {
     aiTimer = null;
     if (!isAiTurn()) return;
-    // Power-Ups: try to spend a token first
-    const puMv = chooseAiPowerUpMove();
+    // Power-Ups: try to spend a token first, but only if the move is legal
+    const puMv = validatePowerUpMove(chooseAiPowerUpMove());
     if (puMv) { finalizeMove(puMv); return; }
     const depth = currentConfig.aiDifficulty || 2;
     const mv = chooseAiMove(state, depth);
     if (mv) finalizeMove(mv);
   }, 300);
+}
+
+// Rejects power-up moves that leave the mover's own king in check.
+function validatePowerUpMove(mv) {
+  if (!mv) return null;
+  const me = state.turn;
+  const enemy = me === 'w' ? 'b' : 'w';
+  const test = cloneState(state);
+  applyMoveTo(test, mv);
+  const k = findKing(test, me);
+  if (k < 0 || isAttacked(test, k, enemy)) return null;
+  return mv;
 }
 
 // Picks a power-up move using simple heuristics. Returns null if the AI
@@ -1531,28 +1556,40 @@ function onPowerUpClick(e) {
 function handlePowerUpClick(idx) {
   if (!activePowerUp) return false;
   const piece = state.board[idx];
+  const me    = state.turn;
+  const enemy = me === 'w' ? 'b' : 'w';
+
+  // Helper: would applying `mv` leave the current side's king in check? If so,
+  // the move is illegal (same rule the normal legalMoves filter enforces).
+  const leavesKingSafe = (mv) => {
+    const test = cloneState(state);
+    applyMoveTo(test, mv);
+    const k = findKing(test, me);
+    return k >= 0 && !isAttacked(test, k, enemy);
+  };
 
   if (activePowerUp.type === 'promote') {
-    // Promote can only target your own pawns
-    if (!piece || piece.color !== state.turn || piece.type !== 'p') return true;
-    pendingPromo = ['q','r','b','n'].map(promo => ({
-      from: -1, to: idx, powerUp: 'promote', promo,
-    }));
+    if (!piece || piece.color !== me || piece.type !== 'p') return true;
+    const safe = ['q','r','b','n']
+      .map(promo => ({ from: -1, to: idx, powerUp: 'promote', promo }))
+      .filter(leavesKingSafe);
+    if (!safe.length) return true;   // every promotion would leave king in check
+    pendingPromo = safe;
     promoModal.hidden = false;
     return true;
   }
 
   if (activePowerUp.type === 'teleport') {
     if (activePowerUp.step === 'select-source') {
-      if (!piece || piece.color !== state.turn) return true;
+      if (!piece || piece.color !== me) return true;
       activePowerUp.sourceIdx = idx;
       activePowerUp.step = 'select-target';
       legalForSelected = [];
       const total = state.width * state.height;
       for (let i = 0; i < total; i++) {
-        if (!state.board[i]) {
-          legalForSelected.push({ from: idx, to: i, powerUp: 'teleport' });
-        }
+        if (state.board[i]) continue;
+        const mv = { from: idx, to: i, powerUp: 'teleport' };
+        if (leavesKingSafe(mv)) legalForSelected.push(mv);
       }
       render();
       return true;
@@ -1568,11 +1605,14 @@ function handlePowerUpClick(idx) {
 
   if (activePowerUp.type === 'randomize') {
     if (!piece || piece.type === 'k') return true;
-    const choices = ['q','r','b','n','p'];
-    const newType = choices[Math.floor(Math.random() * choices.length)];
-    const mv = { from: -1, to: idx, powerUp: 'randomize', newType };
+    // Only consider random outcomes that don't leave our king in check
+    const safeTypes = ['q','r','b','n','p'].filter(t =>
+      leavesKingSafe({ from: -1, to: idx, powerUp: 'randomize', newType: t })
+    );
+    if (!safeTypes.length) return true;
+    const newType = safeTypes[Math.floor(Math.random() * safeTypes.length)];
     activePowerUp = null;
-    commitMove(mv);
+    commitMove({ from: -1, to: idx, powerUp: 'randomize', newType });
     return true;
   }
 
@@ -1763,11 +1803,13 @@ function finalizeMove(mv) {
   legalForSelected = [];
 
   // Power-Ups: grant the mover at most ONE token per turn — capture wins,
-  // else the periodic grant (every 6 plies) fires.
+  // else the periodic grant fires. The interval is every 3 plies so the
+  // multiples ALTERNATE sides (3=W, 6=B, 9=W, 12=B, ...). Each colour
+  // therefore receives a periodic token every 6 plies / 3 of its own moves.
   if (state.gameMode === 'powerUps' && state.powerUps) {
     if (mv.capture) {
       state.powerUps[moverColor].push(randomPowerUpType());
-    } else if (state.moves.length > 0 && state.moves.length % 6 === 0) {
+    } else if (state.moves.length > 0 && state.moves.length % 3 === 0) {
       state.powerUps[moverColor].push(randomPowerUpType());
     }
   }
